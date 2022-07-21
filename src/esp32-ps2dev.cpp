@@ -9,24 +9,6 @@
 
 #include "esp32-ps2dev.h"
 
-// Enable serial debug mode?
-//#define _PS2DBG Serial
-
-// since for the device side we are going to be in charge of the clock,
-// the two defines below are how long each _phase_ of the clock cycle is
-#define CLKFULL 40
-// we make changes in the middle of a phase, this how long from the
-// start of phase to the when we drive the data line
-#define CLKHALF 20
-
-// Delay between bytes
-// I've found i need at least 400us to get this working at all,
-// but even more is needed for reliability, so i've put 1000us
-#define BYTEWAIT 400
-
-// Timeout if computer not sending for 30ms
-#define TIMEOUT 30
-
 namespace esp32_ps2dev {
 
 /*
@@ -76,12 +58,12 @@ int PS2dev::write(unsigned char data) {
   }
 
   golo(_ps2data);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   // device sends on falling clock
   golo(_ps2clk);  // start bit
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
   for (i = 0; i < 8; i++) {
     if (data & 0x01) {
@@ -89,11 +71,11 @@ int PS2dev::write(unsigned char data) {
     } else {
       golo(_ps2data);
     }
-    delayMicroseconds(CLKHALF);
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
     golo(_ps2clk);
-    delayMicroseconds(CLKFULL);
+    delayMicroseconds(CLK_HALF_PERIOD_MICROS);
     gohi(_ps2clk);
-    delayMicroseconds(CLKHALF);
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
     parity = parity ^ (data & 0x01);
     data = data >> 1;
@@ -104,19 +86,19 @@ int PS2dev::write(unsigned char data) {
   } else {
     golo(_ps2data);
   }
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
   // stop bit
   gohi(_ps2data);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
   delayMicroseconds(BYTEWAIT);
 
@@ -153,7 +135,7 @@ PS2dev::BusState PS2dev::get_bus_state() {
   }
 }
 
-int PS2dev::read(unsigned char *value) {
+int PS2dev::read(unsigned char *value, uint64_t timeout_ms) {
   unsigned int data = 0x00;
   unsigned int bit = 0x01;
 
@@ -162,16 +144,16 @@ int PS2dev::read(unsigned char *value) {
 
   // wait for data line to go low and clock line to go high (or timeout)
   unsigned long waiting_since = millis();
-  while ((digitalRead(_ps2data) != LOW) || (digitalRead(_ps2clk) != HIGH)) {
-    if ((millis() - waiting_since) > TIMEOUT) return -1;
+  while (get_bus_state() != BusState::HOST_REQUEST_TO_SEND) {
+    if ((millis() - waiting_since) > timeout_ms) return -1;
     delay(1);
   }
 
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
   while (bit < 0x0100) {
     if (digitalRead(_ps2data) == HIGH) {
@@ -183,11 +165,11 @@ int PS2dev::read(unsigned char *value) {
 
     bit = bit << 1;
 
-    delayMicroseconds(CLKHALF);
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
     golo(_ps2clk);
-    delayMicroseconds(CLKFULL);
+    delayMicroseconds(CLK_HALF_PERIOD_MICROS);
     gohi(_ps2clk);
-    delayMicroseconds(CLKHALF);
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   }
   // we do the delay at the end of the loop, so at this point we have
   // already done the delay for the parity bit
@@ -198,18 +180,18 @@ int PS2dev::read(unsigned char *value) {
   }
 
   // stop bit
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2data);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   gohi(_ps2data);
 
   *value = data & 0x00FF;
