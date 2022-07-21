@@ -47,13 +47,13 @@ PS2dev::PS2dev(int clk, int data) {
  * pullup resistors.
  */
 void PS2dev::gohi(int pin) {
-  pinMode(pin, INPUT);
   digitalWrite(pin, HIGH);
+  pinMode(pin, INPUT);
 }
 
 void PS2dev::golo(int pin) {
+  pinMode(pin, OUTPUT_OPEN_DRAIN);
   digitalWrite(pin, LOW);
-  pinMode(pin, OUTPUT);
 }
 
 int PS2dev::write(unsigned char data) {
