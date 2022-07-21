@@ -7,7 +7,7 @@
  *      probably lots of room for optimization.
  */
 
-#include "ps2dev.h"
+#include "esp32-ps2dev.h"
 
 //Enable serial debug mode?
 //#define _PS2DBG Serial
