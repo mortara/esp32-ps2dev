@@ -9,7 +9,7 @@ class PS2dev {
   PS2dev(int clk, int data);
 
   int write(unsigned char data);
-	int write_multi(uint8_t len, uint8_t *data);
+  int write_multi(uint8_t len, uint8_t* data);
   int read(unsigned char* data);
   int available();
 
