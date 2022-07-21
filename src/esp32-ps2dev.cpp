@@ -22,7 +22,7 @@
 // Delay between bytes
 // I've found i need at least 400us to get this working at all,
 // but even more is needed for reliability, so i've put 1000us
-#define BYTEWAIT 1000
+#define BYTEWAIT 400
 
 // Timeout if computer not sending for 30ms
 #define TIMEOUT 30
@@ -154,6 +154,7 @@ int PS2dev::read(unsigned char *value) {
   unsigned long waiting_since = millis();
   while ((digitalRead(_ps2data) != LOW) || (digitalRead(_ps2clk) != HIGH)) {
     if ((millis() - waiting_since) > TIMEOUT) return -1;
+    delay(1);
   }
 
   delayMicroseconds(CLKHALF);
