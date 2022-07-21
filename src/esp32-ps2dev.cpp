@@ -143,6 +143,16 @@ int PS2dev::available() {
   return ((digitalRead(_ps2data) == LOW) || (digitalRead(_ps2clk) == LOW));
 }
 
+PS2dev::BusState PS2dev::get_bus_state() {
+  if (digitalRead(_ps2clk) == LOW) {
+    return BusState::COMMUNICATION_INHIBITED;
+  } else if (digitalRead(_ps2data) == LOW) {
+    return BusState::HOST_REQUEST_TO_SEND;
+  } else {
+    return BusState::IDLE;
+  }
+}
+
 int PS2dev::read(unsigned char *value) {
   unsigned int data = 0x00;
   unsigned int bit = 0x01;
