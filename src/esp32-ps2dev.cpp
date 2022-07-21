@@ -27,6 +27,7 @@
 // Timeout if computer not sending for 30ms
 #define TIMEOUT 30
 
+namespace esp32_ps2dev {
 
 /*
  * the clock and data pins can be wired directly to the clk and data pins
@@ -220,5 +221,7 @@ int PS2dev::read(unsigned char * value)
   } else {
     return -2;
   }
+
+}
 
 }
