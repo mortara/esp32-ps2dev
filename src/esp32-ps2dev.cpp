@@ -137,6 +137,17 @@ int PS2dev::write(unsigned char data)
   return 0;
 }
 
+int PS2dev::write_multi(uint8_t len, uint8_t *data)
+{
+  for (size_t i = 0; i < len; i++) {
+    int ret = write(data[i]);
+    if (ret != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 int PS2dev::available() {
   //delayMicroseconds(BYTEWAIT);
   return ( (digitalRead(_ps2data) == LOW) || (digitalRead(_ps2clk) == LOW) );
