@@ -39,54 +39,68 @@ void PS2dev::golo(int pin) {
 }
 
 int PS2dev::write(unsigned char data) {
+  delayMicroseconds(BYTEWAIT);
+
+  unsigned char i;
+  unsigned char parity = 1;
+
 #ifdef _PS2DBG
   _PS2DBG.print(F("sending "));
   _PS2DBG.println(data, HEX);
 #endif
 
-  // ensure the bus is idle for at least 50 microseconds
-  for (size_t i = 0; i < 5; i++) {
-    if (get_bus_state() != BusState::IDLE) {
-      return -1;
-    }
-    delayMicroseconds(10);
+  if (digitalRead(_ps2clk) == LOW) {
+    return -1;
   }
 
-  // frame generation
-  uint16_t frame = 0;
-  uint8_t parity_bit = 1;
-  for (size_t i = 0; i < 8; i++) {
-    frame <<= 1;
-    frame |= (data & 0x01);
-    data >>= 1;
-    parity_bit ^= frame & 0x01;
+  if (digitalRead(_ps2data) == LOW) {
+    return -2;
   }
-  frame <<= 1;
-  frame |= (parity_bit << 9);
-  frame |= (0x01 << 10);
 
-  // frame transmission
-  for (size_t i = 0; i < 11; i++) {
-    // stop writing if the clock is low
-    if (digitalRead(_ps2clk) == LOW) {
-      gohi(_ps2clk);
-      gohi(_ps2data);
-      return -2;
-    }
+  golo(_ps2data);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  // device sends on falling clock
+  golo(_ps2clk);  // start bit
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  gohi(_ps2clk);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
-    if (frame & 0x01) {
+  for (i = 0; i < 8; i++) {
+    if (data & 0x01) {
       gohi(_ps2data);
     } else {
       golo(_ps2data);
     }
-    frame >>= 1;
-
     delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
     golo(_ps2clk);
     delayMicroseconds(CLK_HALF_PERIOD_MICROS);
     gohi(_ps2clk);
     delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+
+    parity = parity ^ (data & 0x01);
+    data = data >> 1;
   }
+  // parity bit
+  if (parity) {
+    gohi(_ps2data);
+  } else {
+    golo(_ps2data);
+  }
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  golo(_ps2clk);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  gohi(_ps2clk);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+
+  // stop bit
+  gohi(_ps2data);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  golo(_ps2clk);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  gohi(_ps2clk);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+
+  delayMicroseconds(BYTEWAIT);
 
 #ifdef _PS2DBG
   _PS2DBG.print(F("sent "));
@@ -135,15 +149,13 @@ int PS2dev::read(unsigned char *value, uint64_t timeout_ms) {
     delay(1);
   }
 
-  // skip the start bit
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
   delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  gohi(_ps2clk);
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
   while (bit < 0x0100) {
-    gohi(_ps2clk);
-
-    // Data sent from the host to the device is read on the rising edge.
     if (digitalRead(_ps2data) == HIGH) {
       data = data | bit;
       calculated_parity = calculated_parity ^ 1;
@@ -153,43 +165,29 @@ int PS2dev::read(unsigned char *value, uint64_t timeout_ms) {
 
     bit = bit << 1;
 
-    delayMicroseconds(CLK_HALF_PERIOD_MICROS);
-    // ensure communication is not inhibited
-    if (digitalRead(_ps2clk) == LOW) {
-      return -3;
-    }
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
     golo(_ps2clk);
     delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+    gohi(_ps2clk);
+    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   }
+  // we do the delay at the end of the loop, so at this point we have
+  // already done the delay for the parity bit
 
   // parity bit
-  gohi(_ps2clk);
   if (digitalRead(_ps2data) == HIGH) {
     received_parity = 1;
   }
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
-  // ensure communication is not inhibited
-  if (digitalRead(_ps2clk) == LOW) {
-    return -3;
-  }
-  golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
 
   // stop bit
+  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  golo(_ps2clk);
+  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
-  if (digitalRead(_ps2data) != HIGH) {
-    // stop bit must be high
-    return -4;
-  }
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
-  // reply acknowledge bit
-  // ensure communication is not inhibited
-  if (digitalRead(_ps2clk) == LOW) {
-    return -3;
-  }
-  golo(_ps2data);
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  golo(_ps2data);
   golo(_ps2clk);
   delayMicroseconds(CLK_HALF_PERIOD_MICROS);
   gohi(_ps2clk);
