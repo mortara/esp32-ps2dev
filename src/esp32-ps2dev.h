@@ -10,7 +10,7 @@ namespace esp32_ps2dev {
 
 const uint32_t CLK_HALF_PERIOD_MICROS = 40;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
-const uint32_t BYTEWAIT = 400;
+const uint32_t DEFAULT_WRITE_WAIT_MICROS = 1000;
 
 class PS2dev {
  public:
@@ -22,7 +22,7 @@ class PS2dev {
     HOST_REQUEST_TO_SEND,
   };
 
-  int write(unsigned char data);
+  int write(unsigned char data, uint32_t wait_ms = DEFAULT_WRITE_WAIT_MICROS);
   int write_multi(uint8_t len, uint8_t* data);
   int read(unsigned char* data, uint64_t timeout_ms = 30);
   int available();

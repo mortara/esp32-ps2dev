@@ -38,8 +38,8 @@ void PS2dev::golo(int pin) {
   digitalWrite(pin, LOW);
 }
 
-int PS2dev::write(unsigned char data) {
-  delayMicroseconds(BYTEWAIT);
+int PS2dev::write(unsigned char data, uint32_t wait_ms) {
+  delayMicroseconds(wait_ms / 2);
 
   unsigned char i;
   unsigned char parity = 1;
@@ -100,7 +100,7 @@ int PS2dev::write(unsigned char data) {
   gohi(_ps2clk);
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
-  delayMicroseconds(BYTEWAIT);
+  delayMicroseconds(wait_ms / 2);
 
 #ifdef _PS2DBG
   _PS2DBG.print(F("sent "));
