@@ -49,12 +49,8 @@ int PS2dev::write(unsigned char data, uint32_t wait_ms) {
   _PS2DBG.println(data, HEX);
 #endif
 
-  if (digitalRead(_ps2clk) == LOW) {
+  if (get_bus_state() == BusState::COMMUNICATION_INHIBITED) {
     return -1;
-  }
-
-  if (digitalRead(_ps2data) == LOW) {
-    return -2;
   }
 
   golo(_ps2data);
