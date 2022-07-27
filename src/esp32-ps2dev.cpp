@@ -377,6 +377,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       _ESP32_PS2DEV_DEBUG_.print("PS2Mouse::reply_to_host: Unknown command received: ");
       _ESP32_PS2DEV_DEBUG_.println(host_cmd, HEX);
 #endif
+      break;
   }
   return 0;
 }
@@ -540,6 +541,7 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
       _ESP32_PS2DEV_DEBUG_.print("PS2Keyboard::reply_to_host: Unknown command received: ");
       _ESP32_PS2DEV_DEBUG_.println(host_cmd, HEX);
 #endif  // _ESP32_PS2DEV_DEBUG_
+      break;
   }
 
   return 0;
