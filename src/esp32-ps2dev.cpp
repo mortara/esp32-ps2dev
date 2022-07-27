@@ -459,9 +459,9 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
 #if defined(_ESP32_PS2DEV_DEBUG_)
       _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Reset command received");
 #endif  // _ESP32_PS2DEV_DEBUG_
-      ack();
       // the while loop lets us wait for the host to be ready
-      while (write(0xAA) != 0) delay(1);
+      while (write((uint8_t)Command::ACK) != 0) delay(1);
+      while (write((uint8_t)Command::BAT_SUCCESS) != 0) delay(1);
       _data_reporting_enabled = false;
       break;
     case Command::RESEND:  // resend

@@ -112,6 +112,7 @@ class PS2Keyboard : public PS2dev {
   enum class Command {
     RESET = 0xFF,
     RESEND = 0xFE,
+    ACK = 0xFA,
     SET_DEFAULTS = 0xF6,
     DISABLE_DATA_REPORTING = 0xF5,
     ENABLE_DATA_REPORTING = 0xF4,
@@ -120,6 +121,7 @@ class PS2Keyboard : public PS2dev {
     SET_SCAN_CODE_SET = 0xF0,
     ECHO = 0xEE,
     SET_RESET_LEDS = 0xED,
+    BAT_SUCCESS = 0xAA,
   };
   bool data_reporting_enabled();
   bool is_scroll_lock_led_on();
