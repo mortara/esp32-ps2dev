@@ -1,6 +1,9 @@
 #ifndef __ESP32_PS2DEV_H__
 #define __ESP32_PS2DEV_H__
 
+#include <initializer_list>
+#include <stack>
+
 #include "Arduino.h"
 #include "scan_codes_set_2.h"
 
@@ -154,6 +157,7 @@ class PS2Keyboard : public PS2dev {
   void keydown(scancodes::Key key);
   void keyup(scancodes::Key key);
   void type(scancodes::Key key);
+  void type(std::initializer_list<scancodes::Key> keys);
   void type(const char* str);
 
  protected:

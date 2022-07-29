@@ -689,6 +689,19 @@ void PS2Keyboard::type(scancodes::Key key) {
   delay(10);
   keyup(key);
 }
+void PS2Keyboard::type(std::initializer_list<scancodes::Key> keys) {
+  std::stack<scancodes::Key> stack;
+  for (auto key : keys) {
+    keydown(key);
+    stack.push(key);
+    delay(10);
+  }
+  while (!stack.empty()) {
+    keyup(stack.top());
+    stack.pop();
+    delay(10);
+  }
+}
 void PS2Keyboard::type(const char* str) {
   size_t i = 0;
   while (str[i] != '\0') {
