@@ -562,6 +562,14 @@ void PS2Mouse::_send_status() {
 }
 
 PS2Keyboard::PS2Keyboard(int clk, int data) : PS2dev(clk, data) {}
+void PS2Keyboard::begin() {
+  PS2dev::begin();
+
+  xSemaphoreTake(_mutex_bus, portMAX_DELAY);
+  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  while (write(0xAA) != 0) delay(200);
+  xSemaphoreGive(_mutex_bus);
+}
 bool PS2Keyboard::data_reporting_enabled() { return _data_reporting_enabled; }
 bool PS2Keyboard::is_scroll_lock_led_on() { return _led_scroll_lock; }
 bool PS2Keyboard::is_num_lock_led_on() { return _led_num_lock; }

@@ -147,6 +147,7 @@ class PS2Keyboard : public PS2dev {
     SET_RESET_LEDS = 0xED,
     BAT_SUCCESS = 0xAA,
   };
+  void begin();
   bool data_reporting_enabled();
   bool is_scroll_lock_led_on();
   bool is_num_lock_led_on();
