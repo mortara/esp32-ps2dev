@@ -427,14 +427,13 @@ void PS2Mouse::reset_counter() {
   _count_z = 0;
   _count_x_overflow = 0;
   _count_y_overflow = 0;
-  _count_or_button_changed = false;
 }
 uint8_t PS2Mouse::get_sample_rate() { return _sample_rate; }
 void PS2Mouse::move(int16_t x, int16_t y, int8_t wheel) {
   _count_x += x;
   _count_y += y;
   _count_z += wheel;
-  _count_or_button_changed = true;
+  xTaskNotifyGive(_task_poll_mouse_count);
 }
 void PS2Mouse::press(Button button) {
   switch (button) {
@@ -456,7 +455,7 @@ void PS2Mouse::press(Button button) {
     default:
       break;
   }
-  _count_or_button_changed = true;
+  xTaskNotifyGive(_task_poll_mouse_count);
 }
 void PS2Mouse::release(Button button) {
   switch (button) {
@@ -478,14 +477,13 @@ void PS2Mouse::release(Button button) {
     default:
       break;
   }
-  _count_or_button_changed = true;
+  xTaskNotifyGive(_task_poll_mouse_count);
 }
 void PS2Mouse::click(Button button) {
   press(button);
   delay(MOUSE_CLICK_PRESSING_DURATION_MILLIS);
   release(button);
 }
-bool PS2Mouse::_get_count_or_button_changed() { return _count_or_button_changed; }
 void PS2Mouse::_report() {
   PS2Packet packet;
   if (_scale == Scale::TWO_ONE) {
@@ -703,7 +701,8 @@ void _taskfn_send_packet(void* arg) {
 void _taskfn_poll_mouse_count(void* arg) {
   PS2Mouse* ps2mouse = (PS2Mouse*)arg;
   while (true) {
-    if (ps2mouse->data_reporting_enabled() && ps2mouse->_get_count_or_button_changed()) {
+    xTaskNotifyWait(0, 0, NULL, portMAX_DELAY);
+    if (ps2mouse->data_reporting_enabled()) {
       ps2mouse->_report();
     }
     delay(1000 / ps2mouse->get_sample_rate());

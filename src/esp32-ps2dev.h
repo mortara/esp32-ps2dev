@@ -101,7 +101,6 @@ class PS2Mouse : public PS2dev {
   void press(Button button);
   void release(Button button);
   void click(Button button);
-  bool _get_count_or_button_changed();
   void _report();
 
  protected:
@@ -126,7 +125,6 @@ class PS2Mouse : public PS2dev {
   uint8_t _button_middle = 0;
   uint8_t _button_4th = 0;
   uint8_t _button_5th = 0;
-  bool _count_or_button_changed = false;
 };
 
 class PS2Keyboard : public PS2dev {
