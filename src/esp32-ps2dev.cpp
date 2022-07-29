@@ -198,7 +198,7 @@ void PS2Mouse::begin() {
 
   xSemaphoreTake(_mutex_bus, portMAX_DELAY);
   delayMicroseconds(BYTE_INTERVAL_MICROS);
-  while (write(0xAA) != 0) delay(1);
+  while (write(0xAA) != 0) delay(200);
   delayMicroseconds(BYTE_INTERVAL_MICROS);
   while (write(0x00) != 0) delay(1);
   xSemaphoreGive(_mutex_bus);
