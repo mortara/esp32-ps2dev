@@ -193,6 +193,19 @@ QueueHandle_t PS2dev::get_packet_queue_handle() { return _queue_packet; }
 int PS2dev::send_packet(PS2Packet* packet) { return (xQueueSend(_queue_packet, packet, 0) == pdTRUE) ? 0 : -1; }
 
 PS2Mouse::PS2Mouse(int clk, int data) : PS2dev(clk, data) {}
+void PS2Mouse::begin() {
+  PS2dev::begin();
+
+  xSemaphoreTake(_mutex_bus, portMAX_DELAY);
+  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  while (write(0xAA) != 0) delay(1);
+  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  while (write(0x00) != 0) delay(1);
+  xSemaphoreGive(_mutex_bus);
+
+  xTaskCreateUniversal(_taskfn_poll_mouse_count, "PS2Mouse", 4096, this, _config_task_priority - 1, &_task_poll_mouse_count,
+                       _config_task_core);
+}
 int PS2Mouse::reply_to_host(uint8_t host_cmd) {
   uint8_t val;
   if (_mode == Mode::WRAP_MODE) {
@@ -416,16 +429,63 @@ void PS2Mouse::reset_counter() {
   _count_y_overflow = 0;
   _count_or_button_changed = false;
 }
-void PS2Mouse::_send_status() {
-  PS2Packet packet;
-  packet.len = 3;
-  boolean mode = (_mode == Mode::REMOTE_MODE);
-  packet.data[0] = (_button_right & 1) & ((_button_middle & 1) << 1) & ((_button_left & 1) << 2) & ((0) << 3) &
-                   (((uint8_t)_scale & 1) << 4) & ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
-  packet.data[1] = (uint8_t)_resolution;
-  packet.data[2] = _sample_rate;
-  send_packet(&packet);
+uint8_t PS2Mouse::get_sample_rate() { return _sample_rate; }
+void PS2Mouse::move(int16_t x, int16_t y, int8_t wheel) {
+  _count_x += x;
+  _count_y += y;
+  _count_z += wheel;
+  _count_or_button_changed = true;
 }
+void PS2Mouse::press(Button button) {
+  switch (button) {
+    case Button::LEFT:
+      _button_left = 1;
+      break;
+    case Button::RIGHT:
+      _button_right = 1;
+      break;
+    case Button::MIDDLE:
+      _button_middle = 1;
+      break;
+    case Button::BUTTON_4:
+      _button_4th = 1;
+      break;
+    case Button::BUTTON_5:
+      _button_5th = 1;
+      break;
+    default:
+      break;
+  }
+  _count_or_button_changed = true;
+}
+void PS2Mouse::release(Button button) {
+  switch (button) {
+    case Button::LEFT:
+      _button_left = 0;
+      break;
+    case Button::RIGHT:
+      _button_right = 0;
+      break;
+    case Button::MIDDLE:
+      _button_middle = 0;
+      break;
+    case Button::BUTTON_4:
+      _button_4th = 0;
+      break;
+    case Button::BUTTON_5:
+      _button_5th = 0;
+      break;
+    default:
+      break;
+  }
+  _count_or_button_changed = true;
+}
+void PS2Mouse::click(Button button) {
+  press(button);
+  delay(100);
+  release(button);
+}
+bool PS2Mouse::_get_count_or_button_changed() { return _count_or_button_changed; }
 void PS2Mouse::_report() {
   PS2Packet packet;
   if (_scale == Scale::TWO_ONE) {
@@ -456,18 +516,49 @@ void PS2Mouse::_report() {
       if (!positive) *p[i] = -abs_value;
     }
   }
+  if (_count_x > 255) {
+    _count_x_overflow = 1;
+    _count_x = 255;
+  } else if (_count_x < -255) {
+    _count_x_overflow = 1;
+    _count_x = -255;
+  }
+  if (_count_y > 255) {
+    _count_y_overflow = 1;
+    _count_y = 255;
+  } else if (_count_y < -255) {
+    _count_y_overflow = 1;
+    _count_y = -255;
+  }
+  if (_count_z > 7) {
+    _count_z = 7;
+  } else if (_count_z < -8) {
+    _count_z = -8;
+  }
+
   packet.len = 3 + _has_wheel;
-  packet.data[0] = (_button_left) & ((_button_right) << 1) & ((_button_middle) << 2) & (1 << 3) & (((_count_x & 0x0100) >> 8) << 4) &
-                   (((_count_y & 0x0100) >> 8) << 5) & (_count_x_overflow << 6) & (_count_y_overflow << 7);
+  packet.data[0] = (_button_left) | ((_button_right) << 1) | ((_button_middle) << 2) | (1 << 3) | ((_count_x < 0) << 4) |
+                   ((_count_y < 0) << 5) | (_count_x_overflow << 6) | (_count_y_overflow << 7);
   packet.data[1] = _count_x & 0xFF;
   packet.data[2] = _count_y & 0xFF;
   if (_has_wheel && !_has_4th_and_5th_buttons) {
     packet.data[3] = _count_z & 0xFF;
   } else if (_has_wheel && _has_4th_and_5th_buttons) {
-    packet.data[3] = (_count_z & 0x0F) & ((_button_4th) << 4) & ((_button_5th) << 5);
+    packet.data[3] = (_count_z & 0x0F) | ((_button_4th) << 4) | ((_button_5th) << 5);
   }
+
   send_packet(&packet);
   reset_counter();
+}
+void PS2Mouse::_send_status() {
+  PS2Packet packet;
+  packet.len = 3;
+  boolean mode = (_mode == Mode::REMOTE_MODE);
+  packet.data[0] = (_button_right & 1) & ((_button_middle & 1) << 1) & ((_button_left & 1) << 2) & ((0) << 3) &
+                   (((uint8_t)_scale & 1) << 4) & ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
+  packet.data[1] = (uint8_t)_resolution;
+  packet.data[2] = _sample_rate;
+  send_packet(&packet);
 }
 
 PS2Keyboard::PS2Keyboard(int clk, int data) : PS2dev(clk, data) {}
@@ -598,6 +689,16 @@ void _taskfn_send_packet(void* arg) {
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
     }
+  }
+  vTaskDelete(NULL);
+}
+void _taskfn_poll_mouse_count(void* arg) {
+  PS2Mouse* ps2mouse = (PS2Mouse*)arg;
+  while (true) {
+    if (ps2mouse->data_reporting_enabled() && ps2mouse->_get_count_or_button_changed()) {
+      ps2mouse->_report();
+    }
+    delay(1000 / ps2mouse->get_sample_rate());
   }
   vTaskDelete(NULL);
 }
