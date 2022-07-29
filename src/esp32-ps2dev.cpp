@@ -690,7 +690,11 @@ void _taskfn_send_packet(void* arg) {
       xSemaphoreTake(ps2dev->get_bus_mutex_handle(), portMAX_DELAY);
       delayMicroseconds(BYTE_INTERVAL_MICROS);
       for (int i = 0; i < packet.len; i++) {
-        ps2dev->write_wait_idle(packet.data[i]);
+        const uint8_t retry_count = 10;
+        for (int j = 0; j < retry_count; j++) {
+          if (ps2dev->write(packet.data[i]) == 0) break;
+          delay(1);
+        }
         delayMicroseconds(BYTE_INTERVAL_MICROS);
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
