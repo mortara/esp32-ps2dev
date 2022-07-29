@@ -482,7 +482,7 @@ void PS2Mouse::release(Button button) {
 }
 void PS2Mouse::click(Button button) {
   press(button);
-  delay(100);
+  delay(MOUSE_CLICK_PRESSING_DURATION_MILLIS);
   release(button);
 }
 bool PS2Mouse::_get_count_or_button_changed() { return _count_or_button_changed; }
@@ -672,7 +672,7 @@ void _taskfn_process_host_request(void* arg) {
       }
     }
     xSemaphoreGive(ps2dev->get_bus_mutex_handle());
-    delay(8);
+    delay(INTERVAL_CHECKING_HOST_SEND_REQUEST_MILLIS);
   }
   vTaskDelete(NULL);
 }

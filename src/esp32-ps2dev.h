@@ -9,8 +9,10 @@ const uint32_t CLK_HALF_PERIOD_MICROS = 40;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
 const uint32_t BYTE_INTERVAL_MICROS = 500;
 const int PACKET_QUEUE_LENGTH = 20;
-const UBaseType_t DEFAULT_TASK_PRIORITY = 1;
+const UBaseType_t DEFAULT_TASK_PRIORITY = 10;
 const BaseType_t DEFAULT_TASK_CORE = APP_CPU_NUM;
+const uint32_t INTERVAL_CHECKING_HOST_SEND_REQUEST_MILLIS = 9;
+const uint32_t MOUSE_CLICK_PRESSING_DURATION_MILLIS = 100;
 
 class PS2Packet {
  public:
@@ -151,7 +153,7 @@ class PS2Keyboard : public PS2dev {
   bool is_caps_lock_led_on();
 
  protected:
-  bool _data_reporting_enabled = false;
+  bool _data_reporting_enabled = true;
   bool _led_scroll_lock = false;
   bool _led_num_lock = false;
   bool _led_caps_lock = false;
