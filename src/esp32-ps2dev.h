@@ -2,6 +2,7 @@
 #define __ESP32_PS2DEV_H__
 
 #include "Arduino.h"
+#include "scan_codes_set_2.h"
 
 namespace esp32_ps2dev {
 
@@ -33,7 +34,7 @@ class PS2dev {
   void config(UBaseType_t task_priority, BaseType_t task_core);
   void begin();
   int write(unsigned char data);
-  int write_wait_idle(uint8_t data, uint64_t timeout_micros = 1000);
+  int write_wait_idle(uint8_t data, uint64_t timeout_micros = 1500);
   int read(unsigned char* data, uint64_t timeout_ms = 0);
   virtual int reply_to_host(uint8_t host_cmd) = 0;
   BusState get_bus_state();
@@ -150,6 +151,10 @@ class PS2Keyboard : public PS2dev {
   bool is_scroll_lock_led_on();
   bool is_num_lock_led_on();
   bool is_caps_lock_led_on();
+  void keydown(scancodes::Key key);
+  void keyup(scancodes::Key key);
+  void type(scancodes::Key key);
+  void type(const char* str);
 
  protected:
   bool _data_reporting_enabled = true;
