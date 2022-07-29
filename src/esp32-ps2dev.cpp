@@ -34,6 +34,9 @@ int PS2dev::write(unsigned char data) {
     return -1;
   }
 
+  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  taskENTER_CRITICAL(&mux);
+
   golo(_ps2data);
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   // device sends on falling clock
@@ -77,6 +80,8 @@ int PS2dev::write(unsigned char data) {
   gohi(_ps2clk);
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
 
+  taskEXIT_CRITICAL(&mux);
+
   return 0;
 }
 int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_micros) {
@@ -101,6 +106,9 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
     if ((millis() - waiting_since) > timeout_ms) return -1;
     delay(1);
   }
+
+  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  taskENTER_CRITICAL(&mux);
 
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   golo(_ps2clk);
@@ -146,6 +154,8 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
   gohi(_ps2clk);
   delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
   gohi(_ps2data);
+
+  taskEXIT_CRITICAL(&mux);
 
   *value = data & 0x00FF;
 
