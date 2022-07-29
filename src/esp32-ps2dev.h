@@ -9,6 +9,8 @@ const uint32_t CLK_HALF_PERIOD_MICROS = 40;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
 const uint32_t BYTE_INTERVAL_MICROS = 500;
 const int PACKET_QUEUE_LENGTH = 20;
+const UBaseType_t DEFAULT_TASK_PRIORITY = 1;
+const BaseType_t DEFAULT_TASK_CORE = APP_CPU_NUM;
 
 class PS2Packet {
  public:
@@ -26,6 +28,8 @@ class PS2dev {
     HOST_REQUEST_TO_SEND,
   };
 
+  void config(UBaseType_t task_priority, BaseType_t task_core);
+  void begin();
   int write(unsigned char data);
   int write_wait_idle(uint8_t data, uint64_t timeout_micros = 1000);
   int read(unsigned char* data, uint64_t timeout_ms = 0);
@@ -38,6 +42,8 @@ class PS2dev {
  protected:
   int _ps2clk;
   int _ps2data;
+  UBaseType_t _config_task_priority = DEFAULT_TASK_PRIORITY;
+  BaseType_t _config_task_core = DEFAULT_TASK_CORE;
   TaskHandle_t _task_process_host_request;
   TaskHandle_t _task_send_packet;
   QueueHandle_t _queue_packet;

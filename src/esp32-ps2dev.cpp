@@ -5,12 +5,26 @@ namespace esp32_ps2dev {
 PS2dev::PS2dev(int clk, int data) {
   _ps2clk = clk;
   _ps2data = data;
+}
+
+void PS2dev::config(UBaseType_t task_priority, BaseType_t task_core) {
+  if (task_priority < 1) {
+    task_priority = 1;
+  } else if (task_priority > configMAX_PRIORITIES) {
+    task_priority = configMAX_PRIORITIES - 1;
+  }
+  _config_task_priority = task_priority;
+  _config_task_core = task_core;
+}
+
+void PS2dev::begin() {
   gohi(_ps2clk);
   gohi(_ps2data);
   _mutex_bus = xSemaphoreCreateMutex();
   _queue_packet = xQueueCreate(PACKET_QUEUE_LENGTH, sizeof(PS2Packet));
-  xTaskCreateUniversal(_taskfn_process_host_request, "process_host_request", 4096, this, 1, &_task_process_host_request, APP_CPU_NUM);
-  xTaskCreateUniversal(_taskfn_send_packet, "send_packet", 4096, this, 0, &_task_send_packet, APP_CPU_NUM);
+  xTaskCreateUniversal(_taskfn_process_host_request, "process_host_request", 4096, this, _config_task_priority, &_task_process_host_request,
+                       _config_task_core);
+  xTaskCreateUniversal(_taskfn_send_packet, "send_packet", 4096, this, _config_task_priority - 1, &_task_send_packet, _config_task_core);
 }
 
 void PS2dev::gohi(int pin) {
