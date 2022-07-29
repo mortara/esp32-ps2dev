@@ -30,7 +30,7 @@ int PS2dev::write(unsigned char data) {
   unsigned char i;
   unsigned char parity = 1;
 
-  if (get_bus_state() == BusState::COMMUNICATION_INHIBITED) {
+  if (get_bus_state() == BusState::IDLE) {
     return -1;
   }
 
