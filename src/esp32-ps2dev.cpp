@@ -403,15 +403,14 @@ void PS2Mouse::reset_counter() {
   _count_or_button_changed = false;
 }
 void PS2Mouse::_send_status() {
-  uint8_t data[3];
+  PS2Packet packet;
+  packet.len = 3;
   boolean mode = (_mode == Mode::REMOTE_MODE);
-  data[0] = (_button_right & 1) & ((_button_middle & 1) << 1) & ((_button_left & 1) << 2) & ((0) << 3) & (((uint8_t)_scale & 1) << 4) &
-            ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
-  data[1] = (uint8_t)_resolution;
-  data[2] = _sample_rate;
-  for (size_t i = 0; i < 3; i++) {
-    write(data[i]);
-  }
+  packet.data[0] = (_button_right & 1) & ((_button_middle & 1) << 1) & ((_button_left & 1) << 2) & ((0) << 3) &
+                   (((uint8_t)_scale & 1) << 4) & ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
+  packet.data[1] = (uint8_t)_resolution;
+  packet.data[2] = _sample_rate;
+  send_packet(&packet);
 }
 void PS2Mouse::_report() {
   PS2Packet packet;
