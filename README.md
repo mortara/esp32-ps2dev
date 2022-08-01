@@ -94,8 +94,13 @@ void loop() {
 # TODO
  * Write more examples.
  * Improve stability.
- * Clean up th code.
+ * Clean up the code.
  * Test against various hosts.
+
+# Reference
+- http://www-ug.eecg.toronto.edu/msl/nios_devices/datasheets/PS2%20Protocol.htm
+- http://www-ug.eecg.toronto.edu/msl/nios_devices/datasheets/PS2%20Mouse%20Protocol.htm
+- http://www-ug.eecg.toronto.edu/msl/nios_devices/datasheets/PS2%20Keyboard%20Protocol.htm
 
 # History
 Originaly from:
