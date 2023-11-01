@@ -565,7 +565,8 @@ void PS2Keyboard::begin() {
 
   xSemaphoreTake(_mutex_bus, portMAX_DELAY);
   delayMicroseconds(BYTE_INTERVAL_MICROS);
-  while (write(0xAA) != 0) delay(200);
+  delay(200);
+  write(0xAA);
   xSemaphoreGive(_mutex_bus);
 }
 bool PS2Keyboard::data_reporting_enabled() { return _data_reporting_enabled; }
@@ -580,7 +581,7 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
       _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Reset command received");
 #endif  // _ESP32_PS2DEV_DEBUG_
       // the while loop lets us wait for the host to be ready
-      while (write((uint8_t)Command::ACK) != 0) delay(1);
+      ack(); // ack() provides delay, some systems need it
       while (write((uint8_t)Command::BAT_SUCCESS) != 0) delay(1);
       _data_reporting_enabled = false;
       break;
@@ -623,10 +624,8 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
       _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Get device id command received");
 #endif  // _ESP32_PS2DEV_DEBUG_
       ack();
-      write(0xAB);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
-      write(0x83);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      while (write(0xAB) != 0) delay(1); // ensure ID gets writed, some hosts may be sensitive
+      while (write(0x83) != 0) delay(1); // this is critical for combined ports (they decide mouse/kb on this)
       break;
     case Command::SET_SCAN_CODE_SET:  // set scan code set
 #if defined(_ESP32_PS2DEV_DEBUG_)
@@ -647,9 +646,9 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
 #if defined(_ESP32_PS2DEV_DEBUG_)
       _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Set/reset LEDs command received");
 #endif  // _ESP32_PS2DEV_DEBUG_
-      ack();
+      while (write(0xAF) != 0) delay(1);
       if (!read(&val)) {
-        ack();
+         while (write(0xAF) != 0) delay(1);
         _led_scroll_lock = ((val & 1) != 0);
         _led_num_lock = ((val & 2) != 0);
         _led_caps_lock = ((val & 4) != 0);
