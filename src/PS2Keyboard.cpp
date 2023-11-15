@@ -475,4 +475,14 @@ void PS2Keyboard::type(const char* str) {
   }
 }
 
+void PS2Keyboard::send_scancode(const std::vector<uint8_t>& scancode) {
+  if (!_data_reporting_enabled) return;
+  PS2Packet packet;
+  packet.len = scancode.size();
+  for (uint8_t i = 0; i < packet.len; i++) {
+    packet.data[i] = scancode[i];
+  }
+  send_packet_to_queue(packet);
+}
+
 }  // namespace esp32_ps2dev

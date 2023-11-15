@@ -1,6 +1,8 @@
 #ifndef BBF49036_AEBA_4E9F_A8ED_F5017C12A915
 #define BBF49036_AEBA_4E9F_A8ED_F5017C12A915
 
+#include <vector>
+
 #include "PS2Dev.hpp"
 #include "ScanCodeSet2.h"
 
@@ -34,6 +36,7 @@ class PS2Keyboard : public PS2dev {
   void type(scancodes::Key key);
   void type(std::initializer_list<scancodes::Key> keys);
   void type(const char* str);
+  void send_scancode(const std::vector<uint8_t>& scancode);
 
  protected:
   bool _data_reporting_enabled = true;
