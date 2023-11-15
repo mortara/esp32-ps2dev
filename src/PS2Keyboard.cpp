@@ -19,75 +19,55 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
   uint8_t val;
   switch ((Command)host_cmd) {
     case Command::RESET:  // reset
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Reset command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Reset command received");
       // the while loop lets us wait for the host to be ready
       ack();  // ack() provides delay, some systems need it
       while (write((uint8_t)Command::BAT_SUCCESS) != 0) delay(1);
       _data_reporting_enabled = false;
       break;
     case Command::RESEND:  // resend
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Resend command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Resend command received");
       ack();
       break;
     case Command::SET_DEFAULTS:  // set defaults
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Set defaults command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Set defaults command received");
       // enter stream mode
       ack();
       break;
     case Command::DISABLE_DATA_REPORTING:  // disable data reporting
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Disable data reporting command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Disable data reporting command received");
       _data_reporting_enabled = false;
       ack();
       break;
     case Command::ENABLE_DATA_REPORTING:  // enable data reporting
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Enable data reporting command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Enable data reporting command received");
       _data_reporting_enabled = true;
       ack();
       break;
     case Command::SET_TYPEMATIC_RATE:  // set typematic rate
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Set typematic rate command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Set typematic rate command received");
       ack();
       if (!read(&val)) ack();  // do nothing with the rate
       break;
     case Command::GET_DEVICE_ID:  // get device id
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Get device id command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Get device id command received");
       ack();
       while (write(0xAB) != 0) delay(1);  // ensure ID gets writed, some hosts may be sensitive
       while (write(0x83) != 0) delay(1);  // this is critical for combined ports (they decide mouse/kb on this)
       break;
     case Command::SET_SCAN_CODE_SET:  // set scan code set
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Set scan code set command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Set scan code set command received");
       ack();
       if (!read(&val)) ack();  // do nothing with the rate
       break;
     case Command::ECHO:  // echo
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Echo command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Echo command received");
       delay(BYTE_INTERVAL_MILLIS);
       write(0xEE);
       delay(BYTE_INTERVAL_MILLIS);
       break;
     case Command::SET_RESET_LEDS:  // set/reset LEDs
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Set/reset LEDs command received");
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD("PS2Keyboard::reply_to_host: Set/reset LEDs command received");
       while (write(0xAF) != 0) delay(1);
       if (!read(&val)) {
         while (write(0xAF) != 0) delay(1);
@@ -98,10 +78,7 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
       return 1;
       break;
     default:
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.print("PS2Keyboard::reply_to_host: Unknown command received: ");
-      _ESP32_PS2DEV_DEBUG_.println(host_cmd, HEX);
-#endif  // _ESP32_PS2DEV_DEBUG_
+      PS2DEV_LOGD(std::string("PS2Keyboard::reply_to_host: Unknown command received: ") + String(host_cmd, HEX).c_str());
       break;
   }
 

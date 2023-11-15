@@ -5,6 +5,7 @@
 #include <stack>
 
 #include "Arduino.h"
+#include "Log.hpp"
 
 namespace esp32_ps2dev {
 

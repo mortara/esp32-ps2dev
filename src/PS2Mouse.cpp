@@ -20,16 +20,12 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
   if (_mode == Mode::WRAP_MODE) {
     switch ((Command)host_cmd) {
       case Command::SET_WRAP_MODE:  // set wrap mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: (WRAP_MODE) Set wrap mode command received");
-#endif
+        PS2DEV_LOGD("PS2Mouse::reply_to_host: (WRAP_MODE) Set wrap mode command received");
         ack();
         reset_counter();
         break;
       case Command::RESET_WRAP_MODE:  // reset wrap mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: (WRAP_MODE) Reset wrap mode command received");
-#endif
+        PS2DEV_LOGD("PS2Mouse::reply_to_host: (WRAP_MODE) Reset wrap mode command received");
         ack();
         reset_counter();
         _mode = _last_mode;
@@ -42,9 +38,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
 
   switch ((Command)host_cmd) {
     case Command::RESET:  // reset
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Reset command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Reset command received");
       ack();
       // the while loop lets us wait for the host to be ready
       while (write(0xAA) != 0) delay(1);
@@ -61,15 +55,11 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       reset_counter();
       break;
     case Command::RESEND:  // resend
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Resend command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Resend command received");
       ack();
       break;
     case Command::SET_DEFAULTS:  // set defaults
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set defaults command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set defaults command received");
       // enter stream mode
       ack();
       _sample_rate = 100;
@@ -80,17 +70,13 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       reset_counter();
       break;
     case Command::DISABLE_DATA_REPORTING:  // disable data reporting
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Disable data reporting command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Disable data reporting command received");
       ack();
       _data_reporting_enabled = false;
       reset_counter();
       break;
     case Command::ENABLE_DATA_REPORTING:  // enable data reporting
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Enable data reporting command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Enable data reporting command received");
       ack();
       _data_reporting_enabled = true;
       reset_counter();
@@ -110,10 +96,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
             _last_sample_rate[0] = _last_sample_rate[1];
             _last_sample_rate[1] = _last_sample_rate[2];
             _last_sample_rate[2] = val;
-#if defined(_ESP32_PS2DEV_DEBUG_)
-            _ESP32_PS2DEV_DEBUG_.print("Set sample rate command received: ");
-            _ESP32_PS2DEV_DEBUG_.println(val);
-#endif
+            PS2DEV_LOGD(std::string("Set sample rate command received: ") + String(val).c_str());
             ack();
             break;
 
@@ -125,56 +108,42 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       }
       break;
     case Command::GET_DEVICE_ID:  // get device id
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Get device id command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Get device id command received");
       ack();
       if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 100 && _last_sample_rate[2] == 80) {
         write(0x03);  // Intellimouse with wheel
         delay(BYTE_INTERVAL_MILLIS);
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as Intellimouse with wheel.");
-#endif
+        PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with wheel.");
         _has_wheel = true;
       } else if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 200 && _last_sample_rate[2] == 80 && _has_wheel == true) {
         write(0x04);  // Intellimouse with 4th and 5th buttons
         delay(BYTE_INTERVAL_MILLIS);
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as Intellimouse with 4th and 5th buttons.");
-#endif
+        PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with 4th and 5th buttons.");
         _has_4th_and_5th_buttons = true;
       } else {
         write(0x00);  // Standard PS/2 mouse
         delay(BYTE_INTERVAL_MILLIS);
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as standard PS/2 mouse.");
-#endif
+        PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as standard PS/2 mouse.");
         _has_wheel = false;
         _has_4th_and_5th_buttons = false;
       }
       reset_counter();
       break;
     case Command::SET_REMOTE_MODE:  // set remote mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set remote mode command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set remote mode command received");
       ack();
       reset_counter();
       _mode = Mode::REMOTE_MODE;
       break;
     case Command::SET_WRAP_MODE:  // set wrap mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set wrap mode command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set wrap mode command received");
       ack();
       reset_counter();
       _last_mode = _mode;
       _mode = Mode::WRAP_MODE;
       break;
     case Command::RESET_WRAP_MODE:  // reset wrap mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Reset wrap mode command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Reset wrap mode command received");
       ack();
       reset_counter();
       break;
@@ -184,16 +153,12 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       reset_counter();
       break;
     case Command::SET_STREAM_MODE:  // set stream mode
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set stream mode command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set stream mode command received");
       ack();
       reset_counter();
       break;
     case Command::STATUS_REQUEST:  // status request
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Status request command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Status request command received");
       ack();
       _send_status();
       break;
@@ -201,33 +166,23 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       if (read(&val) == 0 && val <= 3) {
         _resolution = (ResolutionCode)val;
-#if defined(_ESP32_PS2DEV_DEBUG_)
-        _ESP32_PS2DEV_DEBUG_.print("PS2Mouse::reply_to_host: Set resolution command received: ");
-        _ESP32_PS2DEV_DEBUG_.println(val, HEX);
-#endif
+        PS2DEV_LOGD(std::string("PS2Mouse::reply_to_host: Set resolution command received: ") + String(val, HEX).c_str());
         ack();
         reset_counter();
       }
       break;
     case Command::SET_SCALING_2_1:  // set scaling 2:1
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set scaling 2:1 command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set scaling 2:1 command received");
       ack();
       _scale = Scale::TWO_ONE;
       break;
     case Command::SET_SCALING_1_1:  // set scaling 1:1
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Set scaling 1:1 command received");
-#endif
+      PS2DEV_LOGD("PS2Mouse::reply_to_host: Set scaling 1:1 command received");
       ack();
       _scale = Scale::ONE_ONE;
       break;
     default:
-#if defined(_ESP32_PS2DEV_DEBUG_)
-      _ESP32_PS2DEV_DEBUG_.print("PS2Mouse::reply_to_host: Unknown command received: ");
-      _ESP32_PS2DEV_DEBUG_.println(host_cmd, HEX);
-#endif
+      PS2DEV_LOGD(std::string("PS2Mouse::reply_to_host: Unknown command received: ") + String(host_cmd, HEX).c_str());
       break;
   }
   return 0;
