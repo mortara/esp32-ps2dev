@@ -216,9 +216,15 @@ void _taskfn_send_packet(void* arg) {
     PS2Packet* packet;
     if (xQueueReceive(ps2dev->get_packet_queue_handle(), &packet, portMAX_DELAY) == pdTRUE) {
       xSemaphoreTake(ps2dev->get_bus_mutex_handle(), portMAX_DELAY);
+      if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
+        continue;
+      }
       delay(BYTE_INTERVAL_MILLIS);
       for (int i = 0; i < packet->len; i++) {
-        ps2dev->write_wait_idle(packet->data[i]);
+        if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
+          break;
+        }
+        ps2dev->write(packet->data[i]);
         delay(BYTE_INTERVAL_MILLIS);
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
