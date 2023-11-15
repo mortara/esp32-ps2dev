@@ -150,7 +150,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       break;
     case Command::READ_DATA:  // read data
       ack();
-      _report();
+      send_packet_to_queue(get_packet());
       reset_counter();
       break;
     case Command::SET_STREAM_MODE:  // set stream mode
@@ -274,8 +274,19 @@ void PS2Mouse::move_and_buttons(int16_t x, int16_t y, int8_t wheel, bool left, b
   _count_or_button_changed = true;
 }
 
-void PS2Mouse::_report() {
+bool PS2Mouse::is_count_or_button_changed() { return _count_or_button_changed; }
+
+PS2Packet PS2Mouse::get_packet() {
   PS2Packet packet;
+  // if scale is 2:1, we need to adjust the values
+  //   Movement Counter  Reported Movement
+  //         0                0
+  //         1                1
+  //         2                1
+  //         3                3
+  //         4                6
+  //         5                9
+  //         N > 5            2 * N
   if (_scale == Scale::TWO_ONE) {
     int16_t* p[2] = {&_count_x, &_count_y};
     for (size_t i = 0; i < 2; i++) {
@@ -304,6 +315,7 @@ void PS2Mouse::_report() {
       if (!positive) *p[i] = -abs_value;
     }
   }
+  // set overflow flags if necessary
   if (_count_x > 255) {
     _count_x_overflow = 1;
     _count_x = 255;
@@ -323,23 +335,24 @@ void PS2Mouse::_report() {
   } else if (_count_z < -8) {
     _count_z = -8;
   }
-
+  // build the packet
   packet.len = 3 + _has_wheel;
   packet.data[0] = (_button_left) | ((_button_right) << 1) | ((_button_middle) << 2) | (1 << 3) | ((_count_x < 0) << 4) |
                    ((_count_y < 0) << 5) | (_count_x_overflow << 6) | (_count_y_overflow << 7);
   packet.data[1] = _count_x & 0xFF;
   packet.data[2] = _count_y & 0xFF;
   if (_has_wheel && !_has_4th_and_5th_buttons) {
+    // if Intellimouse with wheel but without 4th and 5th buttons,
+    // the 4th byte is the wheel counter
     packet.data[3] = _count_z & 0xFF;
   } else if (_has_wheel && _has_4th_and_5th_buttons) {
+    // if Intellimouse with wheel and with 4th and 5th buttons,
+    // the first 4 bits of the 4th byte is the wheel counter,
+    // and the 5th and 6th bits are the 4th and 5th buttons
     packet.data[3] = (_count_z & 0x0F) | ((_button_4th) << 4) | ((_button_5th) << 5);
   }
-
-  send_packet_to_queue(packet);
-  reset_counter();
+  return packet;
 }
-
-bool PS2Mouse::is_count_or_button_changed() { return _count_or_button_changed; }
 
 void PS2Mouse::_send_status() {
   PS2Packet packet;
@@ -356,7 +369,7 @@ void _taskfn_poll_mouse_count(void* arg) {
   PS2Mouse* ps2mouse = (PS2Mouse*)arg;
   while (true) {
     if (ps2mouse->data_reporting_enabled() && ps2mouse->is_count_or_button_changed()) {
-      ps2mouse->_report();
+      ps2mouse->send_packet_to_queue(ps2mouse->get_packet());
     }
     ps2mouse->reset_counter();
     delay(1000 / ps2mouse->get_sample_rate());
