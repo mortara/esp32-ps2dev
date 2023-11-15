@@ -48,7 +48,9 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       // the while loop lets us wait for the host to be ready
       while (write(0xAA) != 0) delay(1);
+      delay(BYTE_INTERVAL_MILLIS);
       while (write(0x00) != 0) delay(1);
+      delay(BYTE_INTERVAL_MILLIS);
       _has_wheel = false;
       _has_4th_and_5th_buttons = false;
       _sample_rate = 100;
@@ -129,18 +131,21 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 100 && _last_sample_rate[2] == 80) {
         write(0x03);  // Intellimouse with wheel
+        delay(BYTE_INTERVAL_MILLIS);
 #if defined(_ESP32_PS2DEV_DEBUG_)
         _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as Intellimouse with wheel.");
 #endif
         _has_wheel = true;
       } else if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 200 && _last_sample_rate[2] == 80 && _has_wheel == true) {
         write(0x04);  // Intellimouse with 4th and 5th buttons
+        delay(BYTE_INTERVAL_MILLIS);
 #if defined(_ESP32_PS2DEV_DEBUG_)
         _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as Intellimouse with 4th and 5th buttons.");
 #endif
         _has_4th_and_5th_buttons = true;
       } else {
         write(0x00);  // Standard PS/2 mouse
+        delay(BYTE_INTERVAL_MILLIS);
 #if defined(_ESP32_PS2DEV_DEBUG_)
         _ESP32_PS2DEV_DEBUG_.println("PS2Mouse::reply_to_host: Act as standard PS/2 mouse.");
 #endif
