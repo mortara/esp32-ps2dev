@@ -52,6 +52,7 @@ class PS2Mouse : public PS2dev {
   void release(Button button);
   void click(Button button);
   void _report();
+  bool is_count_or_button_changed();
 
  protected:
   void _send_status();
@@ -75,6 +76,7 @@ class PS2Mouse : public PS2dev {
   uint8_t _button_middle = 0;
   uint8_t _button_4th = 0;
   uint8_t _button_5th = 0;
+  bool _count_or_button_changed = false;
 };
 
 void _taskfn_poll_mouse_count(void* arg);
