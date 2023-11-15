@@ -7,7 +7,6 @@ void PS2Keyboard::begin() {
   PS2dev::begin();
 
   xSemaphoreTake(_mutex_bus, portMAX_DELAY);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
   delay(200);
   write(0xAA);
   xSemaphoreGive(_mutex_bus);
@@ -81,9 +80,9 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
 #if defined(_ESP32_PS2DEV_DEBUG_)
       _ESP32_PS2DEV_DEBUG_.println("PS2Keyboard::reply_to_host: Echo command received");
 #endif  // _ESP32_PS2DEV_DEBUG_
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delay(BYTE_INTERVAL_MILLIS);
       write(0xEE);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delay(BYTE_INTERVAL_MILLIS);
       break;
     case Command::SET_RESET_LEDS:  // set/reset LEDs
 #if defined(_ESP32_PS2DEV_DEBUG_)

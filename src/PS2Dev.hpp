@@ -10,7 +10,7 @@ namespace esp32_ps2dev {
 
 const uint32_t CLK_HALF_PERIOD_MICROS = 40;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
-const uint32_t BYTE_INTERVAL_MICROS = 500;
+const uint32_t BYTE_INTERVAL_MILLIS = 1;
 const int PACKET_QUEUE_LENGTH = 20;
 const UBaseType_t DEFAULT_TASK_PRIORITY = 10;
 const BaseType_t DEFAULT_TASK_CORE = APP_CPU_NUM;
@@ -36,7 +36,7 @@ class PS2dev {
   void config(UBaseType_t task_priority, BaseType_t task_core);
   void begin();
   int write(unsigned char data);
-  int write_wait_idle(uint8_t data, uint64_t timeout_micros = 1500);
+  int write_wait_idle(uint8_t data, uint64_t timeout_millis = 0);
   int read(unsigned char* data, uint64_t timeout_ms = 0);
   virtual int reply_to_host(uint8_t host_cmd) = 0;
   BusState get_bus_state();

@@ -7,10 +7,9 @@ void PS2Mouse::begin() {
   PS2dev::begin();
 
   xSemaphoreTake(_mutex_bus, portMAX_DELAY);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
-  while (write(0xAA) != 0) delay(200);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
-  while (write(0x00) != 0) delay(1);
+  write(0xAA);
+  delay(BYTE_INTERVAL_MILLIS);
+  write(0x00);
   xSemaphoreGive(_mutex_bus);
 
   xTaskCreateUniversal(_taskfn_poll_mouse_count, "PS2Mouse", 4096, this, _config_task_priority - 1, &_task_poll_mouse_count,

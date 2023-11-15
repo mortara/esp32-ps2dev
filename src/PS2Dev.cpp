@@ -36,9 +36,9 @@ void PS2dev::golo(int pin) {
   digitalWrite(pin, LOW);
 }
 void PS2dev::ack() {
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  delay(BYTE_INTERVAL_MILLIS);
   write(0xFA);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  delay(BYTE_INTERVAL_MILLIS);
 }
 int PS2dev::write(unsigned char data) {
   unsigned char i;
@@ -98,10 +98,10 @@ int PS2dev::write(unsigned char data) {
 
   return 0;
 }
-int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_micros) {
-  uint64_t start_time = micros();
+int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_millis) {
+  uint64_t start_time = millis();
   while (get_bus_state() != BusState::IDLE) {
-    if (micros() - start_time > timeout_micros) {
+    if (micros() - start_time > timeout_millis) {
       return -1;
     }
   }
@@ -216,10 +216,10 @@ void _taskfn_send_packet(void* arg) {
     PS2Packet* packet;
     if (xQueueReceive(ps2dev->get_packet_queue_handle(), &packet, portMAX_DELAY) == pdTRUE) {
       xSemaphoreTake(ps2dev->get_bus_mutex_handle(), portMAX_DELAY);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delay(BYTE_INTERVAL_MILLIS);
       for (int i = 0; i < packet->len; i++) {
         ps2dev->write_wait_idle(packet->data[i]);
-        delayMicroseconds(BYTE_INTERVAL_MICROS);
+        delay(BYTE_INTERVAL_MILLIS);
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
     }
