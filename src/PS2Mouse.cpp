@@ -262,6 +262,18 @@ void PS2Mouse::click(Button button) {
   release(button);
 }
 
+void PS2Mouse::move_and_buttons(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5) {
+  _count_x += x;
+  _count_y += y;
+  _count_z += wheel;
+  _button_left = left ? 1 : 0;
+  _button_right = right ? 1 : 0;
+  _button_middle = middle ? 1 : 0;
+  _button_4th = button_4 ? 1 : 0;
+  _button_5th = button_5 ? 1 : 0;
+  _count_or_button_changed = true;
+}
+
 void PS2Mouse::_report() {
   PS2Packet packet;
   if (_scale == Scale::TWO_ONE) {
