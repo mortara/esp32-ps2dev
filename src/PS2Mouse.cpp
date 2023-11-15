@@ -15,6 +15,7 @@ void PS2Mouse::begin() {
   xTaskCreateUniversal(_taskfn_poll_mouse_count, "PS2Mouse", 4096, this, _config_task_priority - 1, &_task_poll_mouse_count,
                        _config_task_core);
 }
+
 int PS2Mouse::reply_to_host(uint8_t host_cmd) {
   uint8_t val;
   if (_mode == Mode::WRAP_MODE) {
@@ -187,9 +188,11 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
   }
   return 0;
 }
+
 bool PS2Mouse::has_wheel() { return _has_wheel; }
 bool PS2Mouse::has_4th_and_5th_buttons() { return _has_4th_and_5th_buttons; }
 bool PS2Mouse::data_reporting_enabled() { return _data_reporting_enabled; }
+
 void PS2Mouse::reset_counter() {
   _count_x = 0;
   _count_y = 0;
@@ -198,6 +201,7 @@ void PS2Mouse::reset_counter() {
   _count_y_overflow = 0;
   _count_or_button_changed = false;
 }
+
 uint8_t PS2Mouse::get_sample_rate() { return _sample_rate; }
 void PS2Mouse::move(int16_t x, int16_t y, int8_t wheel) {
   _count_x += x;
@@ -205,6 +209,7 @@ void PS2Mouse::move(int16_t x, int16_t y, int8_t wheel) {
   _count_z += wheel;
   _count_or_button_changed = true;
 }
+
 void PS2Mouse::press(Button button) {
   switch (button) {
     case Button::LEFT:
@@ -227,6 +232,7 @@ void PS2Mouse::press(Button button) {
   }
   _count_or_button_changed = true;
 }
+
 void PS2Mouse::release(Button button) {
   switch (button) {
     case Button::LEFT:
@@ -249,11 +255,13 @@ void PS2Mouse::release(Button button) {
   }
   _count_or_button_changed = true;
 }
+
 void PS2Mouse::click(Button button) {
   press(button);
   delay(MOUSE_CLICK_PRESSING_DURATION_MILLIS);
   release(button);
 }
+
 void PS2Mouse::_report() {
   PS2Packet packet;
   if (_scale == Scale::TWO_ONE) {
@@ -318,7 +326,9 @@ void PS2Mouse::_report() {
   send_packet_to_queue(packet);
   reset_counter();
 }
+
 bool PS2Mouse::is_count_or_button_changed() { return _count_or_button_changed; }
+
 void PS2Mouse::_send_status() {
   PS2Packet packet;
   packet.len = 3;

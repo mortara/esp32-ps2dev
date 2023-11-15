@@ -11,10 +11,12 @@ void PS2Keyboard::begin() {
   write(0xAA);
   xSemaphoreGive(_mutex_bus);
 }
+
 bool PS2Keyboard::data_reporting_enabled() { return _data_reporting_enabled; }
 bool PS2Keyboard::is_scroll_lock_led_on() { return _led_scroll_lock; }
 bool PS2Keyboard::is_num_lock_led_on() { return _led_num_lock; }
 bool PS2Keyboard::is_caps_lock_led_on() { return _led_caps_lock; }
+
 int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
   uint8_t val;
   switch ((Command)host_cmd) {
@@ -84,6 +86,7 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
 
   return 0;
 }
+
 void PS2Keyboard::keydown(scancodes::Key key) {
   if (!_data_reporting_enabled) return;
   PS2Packet packet;
@@ -93,6 +96,7 @@ void PS2Keyboard::keydown(scancodes::Key key) {
   }
   send_packet_to_queue(packet);
 }
+
 void PS2Keyboard::keyup(scancodes::Key key) {
   if (!_data_reporting_enabled) return;
   PS2Packet packet;
@@ -102,11 +106,13 @@ void PS2Keyboard::keyup(scancodes::Key key) {
   }
   send_packet_to_queue(packet);
 }
+
 void PS2Keyboard::type(scancodes::Key key) {
   keydown(key);
   delay(10);
   keyup(key);
 }
+
 void PS2Keyboard::type(std::initializer_list<scancodes::Key> keys) {
   std::stack<scancodes::Key> stack;
   for (auto key : keys) {
@@ -120,6 +126,7 @@ void PS2Keyboard::type(std::initializer_list<scancodes::Key> keys) {
     delay(10);
   }
 }
+
 void PS2Keyboard::type(const char* str) {
   size_t i = 0;
   while (str[i] != '\0') {

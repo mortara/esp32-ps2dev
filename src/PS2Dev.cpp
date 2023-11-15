@@ -31,15 +31,18 @@ void PS2dev::gohi(int pin) {
   digitalWrite(pin, HIGH);
   pinMode(pin, INPUT);
 }
+
 void PS2dev::golo(int pin) {
   pinMode(pin, OUTPUT_OPEN_DRAIN);
   digitalWrite(pin, LOW);
 }
+
 void PS2dev::ack() {
   delay(BYTE_INTERVAL_MILLIS);
   write(0xFA);
   delay(BYTE_INTERVAL_MILLIS);
 }
+
 int PS2dev::write(unsigned char data) {
   unsigned char i;
   unsigned char parity = 1;
@@ -98,6 +101,7 @@ int PS2dev::write(unsigned char data) {
 
   return 0;
 }
+
 int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_millis) {
   uint64_t start_time = millis();
   while (get_bus_state() != BusState::IDLE) {
@@ -107,6 +111,7 @@ int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_millis) {
   }
   return write(data);
 }
+
 int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
   unsigned int data = 0x00;
   unsigned int bit = 0x01;
@@ -179,6 +184,7 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
     return -2;
   }
 }
+
 PS2dev::BusState PS2dev::get_bus_state() {
   if (digitalRead(_ps2clk) == LOW) {
     return BusState::COMMUNICATION_INHIBITED;
@@ -188,8 +194,10 @@ PS2dev::BusState PS2dev::get_bus_state() {
     return BusState::IDLE;
   }
 }
+
 SemaphoreHandle_t PS2dev::get_bus_mutex_handle() { return _mutex_bus; }
 QueueHandle_t PS2dev::get_packet_queue_handle() { return _queue_packet; }
+
 int PS2dev::send_packet_to_queue(const PS2Packet& packet) {
   auto packet_copy = new PS2Packet(packet);
   return (xQueueSend(_queue_packet, &packet_copy, 0) == pdTRUE) ? 0 : -1;
@@ -210,6 +218,7 @@ void _taskfn_process_host_request(void* arg) {
   }
   vTaskDelete(NULL);
 }
+
 void _taskfn_send_packet(void* arg) {
   PS2dev* ps2dev = (PS2dev*)arg;
   while (true) {
