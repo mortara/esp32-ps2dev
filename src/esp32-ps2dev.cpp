@@ -21,7 +21,7 @@ void PS2dev::begin() {
   gohi(_ps2clk);
   gohi(_ps2data);
   _mutex_bus = xSemaphoreCreateMutex();
-  _queue_packet = xQueueCreate(PACKET_QUEUE_LENGTH, sizeof(PS2Packet));
+  _queue_packet = xQueueCreate(PACKET_QUEUE_LENGTH, sizeof(PS2Packet*));
   xTaskCreateUniversal(_taskfn_process_host_request, "process_host_request", 4096, this, _config_task_priority, &_task_process_host_request,
                        _config_task_core);
   xTaskCreateUniversal(_taskfn_send_packet, "send_packet", 4096, this, _config_task_priority - 1, &_task_send_packet, _config_task_core);
@@ -190,7 +190,10 @@ PS2dev::BusState PS2dev::get_bus_state() {
 }
 SemaphoreHandle_t PS2dev::get_bus_mutex_handle() { return _mutex_bus; }
 QueueHandle_t PS2dev::get_packet_queue_handle() { return _queue_packet; }
-int PS2dev::send_packet(PS2Packet* packet) { return (xQueueSend(_queue_packet, packet, 0) == pdTRUE) ? 0 : -1; }
+int PS2dev::send_packet(const PS2Packet& packet) {
+  auto packet_copy = new PS2Packet(packet);
+  return (xQueueSend(_queue_packet, &packet_copy, 0) == pdTRUE) ? 0 : -1;
+}
 
 PS2Mouse::PS2Mouse(int clk, int data) : PS2dev(clk, data) {}
 void PS2Mouse::begin() {
@@ -545,7 +548,7 @@ void PS2Mouse::_report() {
     packet.data[3] = (_count_z & 0x0F) | ((_button_4th) << 4) | ((_button_5th) << 5);
   }
 
-  send_packet(&packet);
+  send_packet(packet);
   reset_counter();
 }
 void PS2Mouse::_send_status() {
@@ -556,7 +559,7 @@ void PS2Mouse::_send_status() {
                    (((uint8_t)_scale & 1) << 4) & ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
   packet.data[1] = (uint8_t)_resolution;
   packet.data[2] = _sample_rate;
-  send_packet(&packet);
+  send_packet(packet);
 }
 
 PS2Keyboard::PS2Keyboard(int clk, int data) : PS2dev(clk, data) {}
@@ -672,7 +675,7 @@ void PS2Keyboard::keydown(scancodes::Key key) {
   for (uint8_t i = 0; i < packet.len; i++) {
     packet.data[i] = scancodes::MAKE_CODES[key][i];
   }
-  send_packet(&packet);
+  send_packet(packet);
 }
 void PS2Keyboard::keyup(scancodes::Key key) {
   if (!_data_reporting_enabled) return;
@@ -681,7 +684,7 @@ void PS2Keyboard::keyup(scancodes::Key key) {
   for (uint8_t i = 0; i < packet.len; i++) {
     packet.data[i] = scancodes::BREAK_CODES[key][i];
   }
-  send_packet(&packet);
+  send_packet(packet);
 }
 void PS2Keyboard::type(scancodes::Key key) {
   keydown(key);
@@ -1067,16 +1070,17 @@ void _taskfn_process_host_request(void* arg) {
 void _taskfn_send_packet(void* arg) {
   PS2dev* ps2dev = (PS2dev*)arg;
   while (true) {
-    PS2Packet packet;
+    PS2Packet* packet;
     if (xQueueReceive(ps2dev->get_packet_queue_handle(), &packet, portMAX_DELAY) == pdTRUE) {
       xSemaphoreTake(ps2dev->get_bus_mutex_handle(), portMAX_DELAY);
       delayMicroseconds(BYTE_INTERVAL_MICROS);
-      for (int i = 0; i < packet.len; i++) {
-        ps2dev->write_wait_idle(packet.data[i]);
+      for (int i = 0; i < packet->len; i++) {
+        ps2dev->write_wait_idle(packet->data[i]);
         delayMicroseconds(BYTE_INTERVAL_MICROS);
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
     }
+    delete packet;
   }
   vTaskDelete(NULL);
 }
