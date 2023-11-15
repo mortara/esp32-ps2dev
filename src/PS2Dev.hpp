@@ -43,7 +43,7 @@ class PS2dev {
   BusState get_bus_state();
   SemaphoreHandle_t get_bus_mutex_handle();
   QueueHandle_t get_packet_queue_handle();
-  int send_packet(const PS2Packet& packet);
+  int send_packet_to_queue(const PS2Packet& packet);
 
  protected:
   int _ps2clk;

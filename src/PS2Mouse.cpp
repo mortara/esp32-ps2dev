@@ -314,7 +314,7 @@ void PS2Mouse::_report() {
     packet.data[3] = (_count_z & 0x0F) | ((_button_4th) << 4) | ((_button_5th) << 5);
   }
 
-  send_packet(packet);
+  send_packet_to_queue(packet);
   reset_counter();
 }
 void PS2Mouse::_send_status() {
@@ -325,7 +325,7 @@ void PS2Mouse::_send_status() {
                    (((uint8_t)_scale & 1) << 4) & ((_data_reporting_enabled & 1) << 5) & ((mode & 1) << 6) & ((0) << 7);
   packet.data[1] = (uint8_t)_resolution;
   packet.data[2] = _sample_rate;
-  send_packet(packet);
+  send_packet_to_queue(packet);
 }
 
 void _taskfn_poll_mouse_count(void* arg) {

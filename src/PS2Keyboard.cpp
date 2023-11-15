@@ -91,7 +91,7 @@ void PS2Keyboard::keydown(scancodes::Key key) {
   for (uint8_t i = 0; i < packet.len; i++) {
     packet.data[i] = scancodes::MAKE_CODES[key][i];
   }
-  send_packet(packet);
+  send_packet_to_queue(packet);
 }
 void PS2Keyboard::keyup(scancodes::Key key) {
   if (!_data_reporting_enabled) return;
@@ -100,7 +100,7 @@ void PS2Keyboard::keyup(scancodes::Key key) {
   for (uint8_t i = 0; i < packet.len; i++) {
     packet.data[i] = scancodes::BREAK_CODES[key][i];
   }
-  send_packet(packet);
+  send_packet_to_queue(packet);
 }
 void PS2Keyboard::type(scancodes::Key key) {
   keydown(key);
