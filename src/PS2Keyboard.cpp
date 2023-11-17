@@ -23,9 +23,13 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
     case Command::RESET:  // reset
       PS2DEV_LOGD("PS2Keyboard::reply_to_host: Reset command received");
       // the while loop lets us wait for the host to be ready
-      ack();  // ack() provides delay, some systems need it
+      ack();       // ack() provides delay, some systems need it
+      delay(200);  // emulate keyboard reset delay
       while (write((uint8_t)Command::BAT_SUCCESS) != 0) delay(1);
-      _data_reporting_enabled = false;
+      _data_reporting_enabled = true;
+      _led_scroll_lock = false;
+      _led_num_lock = false;
+      _led_caps_lock = false;
       break;
     case Command::RESEND:  // resend
       PS2DEV_LOGD("PS2Keyboard::reply_to_host: Resend command received");
