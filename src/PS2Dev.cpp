@@ -38,9 +38,9 @@ void PS2dev::golo(int pin) {
 }
 
 void PS2dev::ack() {
-  delay(BYTE_INTERVAL_MILLIS);
+  delayMicroseconds(BYTE_INTERVAL_MICROS);
   write(0xFA);
-  delay(BYTE_INTERVAL_MILLIS);
+  delayMicroseconds(BYTE_INTERVAL_MICROS);
 }
 
 int PS2dev::write(unsigned char data) {
@@ -228,13 +228,13 @@ void _taskfn_send_packet(void* arg) {
       if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
         continue;
       }
-      delay(BYTE_INTERVAL_MILLIS);
+      delayMicroseconds(BYTE_INTERVAL_MICROS);
       for (int i = 0; i < packet->len; i++) {
         if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
           break;
         }
         ps2dev->write(packet->data[i]);
-        delay(BYTE_INTERVAL_MILLIS);
+        delayMicroseconds(BYTE_INTERVAL_MICROS);
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
     }
