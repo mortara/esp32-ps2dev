@@ -9,7 +9,7 @@
 
 namespace esp32_ps2dev {
 
-const uint32_t CLK_HALF_PERIOD_MICROS = 40;
+const uint32_t CLK_HALF_PERIOD_MICROS = 30;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
 const uint32_t BYTE_INTERVAL_MILLIS = 1;
 const int PACKET_QUEUE_LENGTH = 20;
