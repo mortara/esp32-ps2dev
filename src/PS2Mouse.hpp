@@ -53,7 +53,9 @@ class PS2Mouse : public PS2dev {
   void click(Button button);
   void move_and_buttons(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5);
   bool is_count_or_button_changed();
+  PS2Packet make_packet(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5);
   PS2Packet get_packet();
+  void send_report(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5);
 
  protected:
   void _send_status();

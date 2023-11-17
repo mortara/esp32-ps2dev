@@ -276,7 +276,7 @@ void PS2Mouse::move_and_buttons(int16_t x, int16_t y, int8_t wheel, bool left, b
 
 bool PS2Mouse::is_count_or_button_changed() { return _count_or_button_changed; }
 
-PS2Packet PS2Mouse::get_packet() {
+PS2Packet PS2Mouse::make_packet(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5) {
   PS2Packet packet;
   // if scale is 2:1, we need to adjust the values
   //   Movement Counter  Reported Movement
@@ -288,7 +288,7 @@ PS2Packet PS2Mouse::get_packet() {
   //         5                9
   //         N > 5            2 * N
   if (_scale == Scale::TWO_ONE) {
-    int16_t* p[2] = {&_count_x, &_count_y};
+    int16_t* p[2] = {&x, &y};
     for (size_t i = 0; i < 2; i++) {
       boolean positive = *p[i] >= 0;
       uint16_t abs_value = positive ? *p[i] : -*p[i];
@@ -316,42 +316,61 @@ PS2Packet PS2Mouse::get_packet() {
     }
   }
   // set overflow flags if necessary
-  if (_count_x > 255) {
-    _count_x_overflow = 1;
-    _count_x = 255;
-  } else if (_count_x < -255) {
-    _count_x_overflow = 1;
-    _count_x = -255;
+  auto x_overflow = 0;
+  auto y_overflow = 0;
+  if (x > 255) {
+    x_overflow = 1;
+    x = 255;
+  } else if (x < -255) {
+    x_overflow = 1;
+    x = -255;
   }
-  if (_count_y > 255) {
-    _count_y_overflow = 1;
-    _count_y = 255;
-  } else if (_count_y < -255) {
-    _count_y_overflow = 1;
-    _count_y = -255;
+  if (y > 255) {
+    y_overflow = 1;
+    y = 255;
+  } else if (y < -255) {
+    y_overflow = 1;
+    y = -255;
   }
-  if (_count_z > 7) {
-    _count_z = 7;
-  } else if (_count_z < -8) {
-    _count_z = -8;
+  if (wheel > 7) {
+    wheel = 7;
+  } else if (wheel < -8) {
+    wheel = -8;
   }
   // build the packet
-  packet.len = 3 + _has_wheel;
-  packet.data[0] = (_button_left) | ((_button_right) << 1) | ((_button_middle) << 2) | (1 << 3) | ((_count_x < 0) << 4) |
-                   ((_count_y < 0) << 5) | (_count_x_overflow << 6) | (_count_y_overflow << 7);
-  packet.data[1] = _count_x & 0xFF;
-  packet.data[2] = _count_y & 0xFF;
-  if (_has_wheel && !_has_4th_and_5th_buttons) {
-    // if Intellimouse with wheel but without 4th and 5th buttons,
-    // the 4th byte is the wheel counter
-    packet.data[3] = _count_z & 0xFF;
-  } else if (_has_wheel && _has_4th_and_5th_buttons) {
-    // if Intellimouse with wheel and with 4th and 5th buttons,
-    // the first 4 bits of the 4th byte is the wheel counter,
-    // and the 5th and 6th bits are the 4th and 5th buttons
-    packet.data[3] = (_count_z & 0x0F) | ((_button_4th) << 4) | ((_button_5th) << 5);
+  packet.data[0] =
+      (left) | ((right) << 1) | ((middle) << 2) | (1 << 3) | ((x < 0) << 4) | ((y < 0) << 5) | (x_overflow << 6) | (y_overflow << 7);
+  packet.data[1] = x & 0xFF;
+  packet.data[2] = y & 0xFF;
+  if (_has_wheel) {
+    packet.len = 4;
+    if (_has_4th_and_5th_buttons) {
+      // if Intellimouse with wheel and with 4th and 5th buttons,
+      // the first 4 bits of the 4th byte is the wheel counter,
+      // and the 5th and 6th bits are the 4th and 5th buttons
+      packet.data[3] = (wheel & 0x0F) | ((button_4) << 4) | ((button_5) << 5);
+    } else {
+      // if Intellimouse with wheel but without 4th and 5th buttons,
+      // the 4th byte is the wheel counter
+      packet.data[3] = wheel & 0xFF;
+    }
+  } else {
+    packet.len = 3;
   }
   return packet;
+}
+
+PS2Packet PS2Mouse::get_packet() {
+  return make_packet(_count_x, _count_y, _count_z, _button_left, _button_right, _button_middle, _button_4th, _button_5th);
+}
+
+// Send a report to the host immediately.
+// Use with care, this function ignore the sample rate specified by the host.
+void PS2Mouse::send_report(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5) {
+  PS2Packet packet = make_packet(x, y, wheel, left, right, middle, button_4, button_5);
+  if (_data_reporting_enabled) {
+    send_packet_to_queue(packet);
+  }
 }
 
 void PS2Mouse::_send_status() {
