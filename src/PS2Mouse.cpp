@@ -2,6 +2,8 @@
 
 namespace esp32_ps2dev {
 
+const uint32_t MOUSE_CLICK_PRESSING_DURATION_MILLIS = 100;
+
 PS2Mouse::PS2Mouse(int clk, int data) : PS2dev(clk, data) {}
 void PS2Mouse::begin() {
   PS2dev::begin();
