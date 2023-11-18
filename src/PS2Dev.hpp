@@ -9,13 +9,20 @@
 
 namespace esp32_ps2dev {
 
+// Time per clock should be 60 to 100 microseconds according to PS/2 specifications.
+// Thus, half period should be 30 to 50 microseconds. 
 const uint32_t CLK_HALF_PERIOD_MICROS = 30;
 const uint32_t CLK_QUATER_PERIOD_MICROS = CLK_HALF_PERIOD_MICROS / 2;
+// I could not find any specification of time between bytes from the PS/2 specification.
+// Based on observation of the mouse signal waveform using an oscilloscope, there appears to be an interval of 1 to 2 clock cycles.
+// ref. https://youtu.be/UqRDLWGLCEk
 const uint32_t BYTE_INTERVAL_MICROS = 100;
+// The device should check for "HOST_REQUEST_TO_SEND" at a interval not exceeding 10 milliseconds.
+const uint32_t INTERVAL_CHECKING_HOST_SEND_REQUEST_MILLIS = 9;
+
 const int PACKET_QUEUE_LENGTH = 20;
 const UBaseType_t DEFAULT_TASK_PRIORITY = 10;
 const BaseType_t DEFAULT_TASK_CORE = APP_CPU_NUM;
-const uint32_t INTERVAL_CHECKING_HOST_SEND_REQUEST_MILLIS = 9;
 const uint32_t MOUSE_CLICK_PRESSING_DURATION_MILLIS = 100;
 
 class PS2Packet {
