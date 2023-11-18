@@ -44,7 +44,6 @@ class PS2dev {
   void config(UBaseType_t task_priority, BaseType_t task_core);
   void begin();
   int write(unsigned char data);
-  int write_wait_idle(uint8_t data, uint64_t timeout_millis = 0);
   int read(unsigned char* data, uint64_t timeout_ms = 0);
   virtual int reply_to_host(uint8_t host_cmd) = 0;
   BusState get_bus_state();

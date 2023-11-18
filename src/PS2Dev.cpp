@@ -102,16 +102,6 @@ int PS2dev::write(unsigned char data) {
   return 0;
 }
 
-int PS2dev::write_wait_idle(uint8_t data, uint64_t timeout_millis) {
-  uint64_t start_time = millis();
-  while (get_bus_state() != BusState::IDLE) {
-    if (micros() - start_time > timeout_millis) {
-      return -1;
-    }
-  }
-  return write(data);
-}
-
 int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
   unsigned int data = 0x00;
   unsigned int bit = 0x01;
