@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <esp32-ps2dev.h>  // Emulate a PS/2 device
+#include <PS2Keyboard.hpp>
 
 const int CLK_PIN = 19;
 const int DATA_PIN = 18;
