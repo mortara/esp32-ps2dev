@@ -1,6 +1,8 @@
 #ifndef BF34F287_08B4_47E4_9442_B0CEF4061E96
 #define BF34F287_08B4_47E4_9442_B0CEF4061E96
 
+#include <nvs_flash.h>
+
 #include "PS2Dev.hpp"
 
 namespace esp32_ps2dev {
@@ -40,7 +42,7 @@ class PS2Mouse : public PS2dev {
     BUTTON_5,
   };
 
-  void begin();
+  void begin(bool restore_internal_state = false);
   int reply_to_host(uint8_t host_cmd);
   bool has_wheel();
   bool has_4th_and_5th_buttons();
@@ -59,7 +61,10 @@ class PS2Mouse : public PS2dev {
 
  protected:
   void _send_status();
+  void _save_internal_state_to_nvs();
+  void _load_internal_state_from_nvs();
   TaskHandle_t _task_poll_mouse_count;
+  nvs_handle _nvs_handle;
   bool _has_wheel = false;
   bool _has_4th_and_5th_buttons = false;
   bool _data_reporting_enabled = false;

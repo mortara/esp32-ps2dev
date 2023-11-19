@@ -5,14 +5,28 @@ namespace esp32_ps2dev {
 const uint32_t MOUSE_CLICK_PRESSING_DURATION_MILLIS = 100;
 
 PS2Mouse::PS2Mouse(int clk, int data) : PS2dev(clk, data) {}
-void PS2Mouse::begin() {
+void PS2Mouse::begin(bool restore_internal_state) {
   PS2dev::begin();
 
-  xSemaphoreTake(_mutex_bus, portMAX_DELAY);
-  write(0xAA);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
-  write(0x00);
-  xSemaphoreGive(_mutex_bus);
+  auto ret = nvs_flash_init();
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::begin: nvs_flash_init failed");
+  }
+  const auto nvs_ns = std::string("ps2dev") + std::to_string(_ps2clk) + std::to_string(_ps2data);
+  ret = nvs_open(nvs_ns.c_str(), NVS_READWRITE, &_nvs_handle);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::begin: nvs_open failed");
+  }
+
+  if (!restore_internal_state) {
+    xSemaphoreTake(_mutex_bus, portMAX_DELAY);
+    write(0xAA);
+    delayMicroseconds(BYTE_INTERVAL_MICROS);
+    write(0x00);
+    xSemaphoreGive(_mutex_bus);
+  } else {
+    _load_internal_state_from_nvs();
+  }
 
   xTaskCreateUniversal(_taskfn_poll_mouse_count, "PS2Mouse", 4096, this, _config_task_priority - 1, &_task_poll_mouse_count,
                        _config_task_core);
@@ -32,6 +46,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
         ack();
         reset_counter();
         _mode = _last_mode;
+        _save_internal_state_to_nvs();
         break;
       default:
         write(host_cmd);
@@ -55,6 +70,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       _scale = Scale::ONE_ONE;
       _data_reporting_enabled = false;
       _mode = Mode::STREAM_MODE;
+      _save_internal_state_to_nvs();
       reset_counter();
       break;
     case Command::RESEND:  // resend
@@ -70,18 +86,21 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       _scale = Scale::ONE_ONE;
       _data_reporting_enabled = false;
       _mode = Mode::STREAM_MODE;
+      _save_internal_state_to_nvs();
       reset_counter();
       break;
     case Command::DISABLE_DATA_REPORTING:  // disable data reporting
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Disable data reporting command received");
       ack();
       _data_reporting_enabled = false;
+      _save_internal_state_to_nvs();
       reset_counter();
       break;
     case Command::ENABLE_DATA_REPORTING:  // enable data reporting
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Enable data reporting command received");
       ack();
       _data_reporting_enabled = true;
+      _save_internal_state_to_nvs();
       reset_counter();
       break;
     case Command::SET_SAMPLE_RATE:  // set sample rate
@@ -106,6 +125,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
           default:
             break;
         }
+        _save_internal_state_to_nvs();
         // _min_report_interval_us = 1000000 / sample_rate;
         reset_counter();
       }
@@ -118,17 +138,20 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
         delayMicroseconds(BYTE_INTERVAL_MICROS);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with wheel.");
         _has_wheel = true;
+        _save_internal_state_to_nvs();
       } else if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 200 && _last_sample_rate[2] == 80 && _has_wheel == true) {
         write(0x04);  // Intellimouse with 4th and 5th buttons
         delayMicroseconds(BYTE_INTERVAL_MICROS);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with 4th and 5th buttons.");
         _has_4th_and_5th_buttons = true;
+        _save_internal_state_to_nvs();
       } else {
         write(0x00);  // Standard PS/2 mouse
         delayMicroseconds(BYTE_INTERVAL_MICROS);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as standard PS/2 mouse.");
         _has_wheel = false;
         _has_4th_and_5th_buttons = false;
+        _save_internal_state_to_nvs();
       }
       reset_counter();
       break;
@@ -137,6 +160,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       reset_counter();
       _mode = Mode::REMOTE_MODE;
+      _save_internal_state_to_nvs();
       break;
     case Command::SET_WRAP_MODE:  // set wrap mode
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Set wrap mode command received");
@@ -144,6 +168,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       reset_counter();
       _last_mode = _mode;
       _mode = Mode::WRAP_MODE;
+      _save_internal_state_to_nvs();
       break;
     case Command::RESET_WRAP_MODE:  // reset wrap mode
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Reset wrap mode command received");
@@ -171,6 +196,7 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
         _resolution = (ResolutionCode)val;
         PS2DEV_LOGD(std::string("PS2Mouse::reply_to_host: Set resolution command received: ") + String(val, HEX).c_str());
         ack();
+        _save_internal_state_to_nvs();
         reset_counter();
       }
       break;
@@ -178,11 +204,13 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Set scaling 2:1 command received");
       ack();
       _scale = Scale::TWO_ONE;
+      _save_internal_state_to_nvs();
       break;
     case Command::SET_SCALING_1_1:  // set scaling 1:1
       PS2DEV_LOGD("PS2Mouse::reply_to_host: Set scaling 1:1 command received");
       ack();
       _scale = Scale::ONE_ONE;
+      _save_internal_state_to_nvs();
       break;
     default:
       PS2DEV_LOGD(std::string("PS2Mouse::reply_to_host: Unknown command received: ") + String(host_cmd, HEX).c_str());
@@ -372,6 +400,60 @@ void PS2Mouse::send_report(int16_t x, int16_t y, int8_t wheel, bool left, bool r
   PS2Packet packet = make_packet(x, y, wheel, left, right, middle, button_4, button_5);
   if (_data_reporting_enabled) {
     send_packet_to_queue(packet);
+  }
+}
+
+void PS2Mouse::_save_internal_state_to_nvs() {
+  auto ret = nvs_set_u8(_nvs_handle, "hasWheel", _has_wheel);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save hasWheel.");
+  }
+  ret = nvs_set_u8(_nvs_handle, "has4and5Btn", _has_4th_and_5th_buttons);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save has4and5Btn.");
+  }
+  ret = nvs_set_u8(_nvs_handle, "dataRepEn", _data_reporting_enabled);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save dataRepEn.");
+  }
+  ret = nvs_set_u8(_nvs_handle, "resolution", (uint8_t)_resolution);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save resolution.");
+  }
+  ret = nvs_set_u8(_nvs_handle, "scale", (uint8_t)_scale);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save scale.");
+  }
+  ret = nvs_set_u8(_nvs_handle, "mode", (uint8_t)_mode);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_save_internal_state_to_nvs: nvs_set_u8 failed to save mode.");
+  }
+}
+
+void PS2Mouse::_load_internal_state_from_nvs() {
+  auto ret = nvs_get_u8(_nvs_handle, "hasWheel", (uint8_t*)&_has_wheel);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load hasWheel.");
+  }
+  nvs_get_u8(_nvs_handle, "has4and5Btn", (uint8_t*)&_has_4th_and_5th_buttons);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load has4and5Btn.");
+  }
+  nvs_get_u8(_nvs_handle, "dataRepEn", (uint8_t*)&_data_reporting_enabled);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load dataRepEn.");
+  }
+  nvs_get_u8(_nvs_handle, "resolution", (uint8_t*)&_resolution);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load resolution.");
+  }
+  nvs_get_u8(_nvs_handle, "scale", (uint8_t*)&_scale);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load scale.");
+  }
+  nvs_get_u8(_nvs_handle, "mode", (uint8_t*)&_mode);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Mouse::_load_internal_state_from_nvs: nvs_get_u8 failed to load mode.");
   }
 }
 
