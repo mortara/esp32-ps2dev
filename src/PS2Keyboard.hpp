@@ -1,6 +1,8 @@
 #ifndef BBF49036_AEBA_4E9F_A8ED_F5017C12A915
 #define BBF49036_AEBA_4E9F_A8ED_F5017C12A915
 
+#include <nvs_flash.h>
+
 #include <vector>
 
 #include "PS2Dev.hpp"
@@ -26,7 +28,7 @@ class PS2Keyboard : public PS2dev {
     SET_RESET_LEDS = 0xED,
     BAT_SUCCESS = 0xAA,
   };
-  void begin();
+  void begin(bool restore_internal_state = false);
   bool data_reporting_enabled();
   bool is_scroll_lock_led_on();
   bool is_num_lock_led_on();
@@ -39,6 +41,9 @@ class PS2Keyboard : public PS2dev {
   void send_scancode(const std::vector<uint8_t>& scancode);
 
  protected:
+  void _save_internal_state_to_nvs();
+  void _load_internal_state_from_nvs();
+  nvs_handle _nvs_handle;
   bool _data_reporting_enabled = true;
   bool _led_scroll_lock = false;
   bool _led_num_lock = false;

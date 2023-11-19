@@ -3,13 +3,29 @@
 namespace esp32_ps2dev {
 
 PS2Keyboard::PS2Keyboard(int clk, int data) : PS2dev(clk, data) {}
-void PS2Keyboard::begin() {
+void PS2Keyboard::begin(bool restore_internal_state) {
   PS2dev::begin();
 
-  xSemaphoreTake(_mutex_bus, portMAX_DELAY);
-  delay(200);
-  write(0xAA);
-  xSemaphoreGive(_mutex_bus);
+  auto ret = nvs_flash_init();
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::begin: nvs_flash_init failed");
+    return;
+  }
+  const auto nvs_ns = std::string("ps2dev") + std::to_string(_ps2clk) + std::to_string(_ps2data);
+  ret = nvs_open(nvs_ns.c_str(), NVS_READWRITE, &_nvs_handle);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::begin: nvs_open failed");
+    return;
+  }
+
+  if (!restore_internal_state) {
+    xSemaphoreTake(_mutex_bus, portMAX_DELAY);
+    delay(200);
+    write(0xAA);
+    xSemaphoreGive(_mutex_bus);
+  } else {
+    _load_internal_state_from_nvs();
+  }
 }
 
 bool PS2Keyboard::data_reporting_enabled() { return _data_reporting_enabled; }
@@ -487,6 +503,52 @@ void PS2Keyboard::send_scancode(const std::vector<uint8_t>& scancode) {
     packet.data[i] = scancode[i];
   }
   send_packet_to_queue(packet);
+}
+
+void PS2Keyboard::_save_internal_state_to_nvs() {
+  auto ret = nvs_set_u8(_nvs_handle, "dataRepEn", _data_reporting_enabled);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_save_internal_state_to_nvs: nvs_set_u8 failed for dataRepEn");
+    return;
+  }
+  ret = nvs_set_u8(_nvs_handle, "ledScrollLock", _led_scroll_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_save_internal_state_to_nvs: nvs_set_u8 failed for ledScrollLock");
+    return;
+  }
+  ret = nvs_set_u8(_nvs_handle, "ledNumLock", _led_num_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_save_internal_state_to_nvs: nvs_set_u8 failed for ledNumLock");
+    return;
+  }
+  ret = nvs_set_u8(_nvs_handle, "ledCapsLock", _led_caps_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_save_internal_state_to_nvs: nvs_set_u8 failed for ledCapsLock");
+    return;
+  }
+}
+
+void PS2Keyboard::_load_internal_state_from_nvs() {
+  auto ret = nvs_get_u8(_nvs_handle, "dataRepEn", (uint8_t*)&_data_reporting_enabled);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_load_internal_state_from_nvs: nvs_get_u8 failed for dataRepEn");
+    return;
+  }
+  ret = nvs_get_u8(_nvs_handle, "ledScrollLock", (uint8_t*)&_led_scroll_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_load_internal_state_from_nvs: nvs_get_u8 failed for ledScrollLock");
+    return;
+  }
+  ret = nvs_get_u8(_nvs_handle, "ledNumLock", (uint8_t*)&_led_num_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_load_internal_state_from_nvs: nvs_get_u8 failed for ledNumLock");
+    return;
+  }
+  ret = nvs_get_u8(_nvs_handle, "ledCapsLock", (uint8_t*)&_led_caps_lock);
+  if (ret != ESP_OK) {
+    PS2DEV_LOGE("PS2Keyboard::_load_internal_state_from_nvs: nvs_get_u8 failed for ledCapsLock");
+    return;
+  }
 }
 
 }  // namespace esp32_ps2dev
