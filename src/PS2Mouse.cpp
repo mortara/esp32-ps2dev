@@ -396,7 +396,7 @@ PS2Packet PS2Mouse::get_packet() {
 
 // Send a report to the host immediately.
 // Use with care, this function ignore the sample rate specified by the host.
-void PS2Mouse::send_report(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5) {
+void IRAM_ATTR PS2Mouse::send_report(int16_t x, int16_t y, int8_t wheel, bool left, bool right, bool middle, bool button_4, bool button_5) {
   PS2Packet packet = make_packet(x, y, wheel, left, right, middle, button_4, button_5);
   if (_data_reporting_enabled) {
     send_packet_to_queue(packet);
