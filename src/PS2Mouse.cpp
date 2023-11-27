@@ -21,7 +21,7 @@ void PS2Mouse::begin(bool restore_internal_state) {
   if (!restore_internal_state) {
     xSemaphoreTake(_mutex_bus, portMAX_DELAY);
     write(0xAA);
-    delayMicroseconds(BYTE_INTERVAL_MICROS);
+    delayMicroseconds(_config_byte_interval_micros);
     write(0x00);
     xSemaphoreGive(_mutex_bus);
   } else {
@@ -60,9 +60,9 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       // the while loop lets us wait for the host to be ready
       while (write(0xAA) != 0) delay(1);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delayMicroseconds(_config_byte_interval_micros);
       while (write(0x00) != 0) delay(1);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delayMicroseconds(_config_byte_interval_micros);
       _has_wheel = false;
       _has_4th_and_5th_buttons = false;
       _sample_rate = 100;
@@ -135,19 +135,19 @@ int PS2Mouse::reply_to_host(uint8_t host_cmd) {
       ack();
       if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 100 && _last_sample_rate[2] == 80) {
         write(0x03);  // Intellimouse with wheel
-        delayMicroseconds(BYTE_INTERVAL_MICROS);
+        delayMicroseconds(_config_byte_interval_micros);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with wheel.");
         _has_wheel = true;
         _save_internal_state_to_nvs();
       } else if (_last_sample_rate[0] == 200 && _last_sample_rate[1] == 200 && _last_sample_rate[2] == 80 && _has_wheel == true) {
         write(0x04);  // Intellimouse with 4th and 5th buttons
-        delayMicroseconds(BYTE_INTERVAL_MICROS);
+        delayMicroseconds(_config_byte_interval_micros);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as Intellimouse with 4th and 5th buttons.");
         _has_4th_and_5th_buttons = true;
         _save_internal_state_to_nvs();
       } else {
         write(0x00);  // Standard PS/2 mouse
-        delayMicroseconds(BYTE_INTERVAL_MICROS);
+        delayMicroseconds(_config_byte_interval_micros);
         PS2DEV_LOGD("PS2Mouse::reply_to_host: Act as standard PS/2 mouse.");
         _has_wheel = false;
         _has_4th_and_5th_buttons = false;

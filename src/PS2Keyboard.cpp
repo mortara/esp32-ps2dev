@@ -84,9 +84,9 @@ int PS2Keyboard::reply_to_host(uint8_t host_cmd) {
       break;
     case Command::ECHO:  // echo
       PS2DEV_LOGD("PS2Keyboard::reply_to_host: Echo command received");
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delayMicroseconds(_config_byte_interval_micros);
       write(0xEE);
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delayMicroseconds(_config_byte_interval_micros);
       break;
     case Command::SET_RESET_LEDS:  // set/reset LEDs
       PS2DEV_LOGD("PS2Keyboard::reply_to_host: Set/reset LEDs command received");

@@ -38,12 +38,15 @@ void PS2dev::golo(int pin) {
 }
 
 void PS2dev::ack() {
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  delayMicroseconds(_config_byte_interval_micros);
   write(0xFA);
-  delayMicroseconds(BYTE_INTERVAL_MICROS);
+  delayMicroseconds(_config_byte_interval_micros);
 }
 
 int PS2dev::write(unsigned char data) {
+  const auto clk_half_period_micros = _config_clk_half_period_micros;
+  const auto clk_quater_period_micros = _config_clk_half_period_micros / 2;
+
   unsigned char i;
   unsigned char parity = 1;
 
@@ -55,12 +58,12 @@ int PS2dev::write(unsigned char data) {
   taskENTER_CRITICAL(&mux);
 
   golo(_ps2data);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   // device sends on falling clock
   golo(_ps2clk);  // start bit
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
 
   for (i = 0; i < 8; i++) {
     if (data & 0x01) {
@@ -68,11 +71,11 @@ int PS2dev::write(unsigned char data) {
     } else {
       golo(_ps2data);
     }
-    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+    delayMicroseconds(clk_quater_period_micros);
     golo(_ps2clk);
-    delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+    delayMicroseconds(clk_half_period_micros);
     gohi(_ps2clk);
-    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+    delayMicroseconds(clk_quater_period_micros);
 
     parity = parity ^ (data & 0x01);
     data = data >> 1;
@@ -83,19 +86,19 @@ int PS2dev::write(unsigned char data) {
   } else {
     golo(_ps2data);
   }
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
 
   // stop bit
   gohi(_ps2data);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
 
   taskEXIT_CRITICAL(&mux);
 
@@ -103,6 +106,9 @@ int PS2dev::write(unsigned char data) {
 }
 
 int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
+  const auto clk_half_period_micros = _config_clk_half_period_micros;
+  const auto clk_quater_period_micros = _config_clk_half_period_micros / 2;
+
   unsigned int data = 0x00;
   unsigned int bit = 0x01;
 
@@ -119,11 +125,11 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
   portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
   taskENTER_CRITICAL(&mux);
 
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
 
   while (bit < 0x0100) {
     if (digitalRead(_ps2data) == HIGH) {
@@ -135,11 +141,11 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
 
     bit = bit << 1;
 
-    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+    delayMicroseconds(clk_quater_period_micros);
     golo(_ps2clk);
-    delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+    delayMicroseconds(clk_half_period_micros);
     gohi(_ps2clk);
-    delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+    delayMicroseconds(clk_quater_period_micros);
   }
   // we do the delay at the end of the loop, so at this point we have
   // already done the delay for the parity bit
@@ -150,18 +156,18 @@ int PS2dev::read(unsigned char* value, uint64_t timeout_ms) {
   }
 
   // stop bit
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
 
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   golo(_ps2data);
   golo(_ps2clk);
-  delayMicroseconds(CLK_HALF_PERIOD_MICROS);
+  delayMicroseconds(clk_half_period_micros);
   gohi(_ps2clk);
-  delayMicroseconds(CLK_QUATER_PERIOD_MICROS);
+  delayMicroseconds(clk_quater_period_micros);
   gohi(_ps2data);
 
   taskEXIT_CRITICAL(&mux);
@@ -193,6 +199,11 @@ int IRAM_ATTR PS2dev::send_packet_to_queue(const PS2Packet& packet) {
   return (xQueueSend(_queue_packet, &packet_copy, 0) == pdTRUE) ? 0 : -1;
 }
 
+void PS2dev::set_clk_half_period_micros(uint32_t clk_half_period_micros) { _config_clk_half_period_micros = clk_half_period_micros; }
+void PS2dev::set_byte_interval_micros(uint32_t byte_interval_micros) { _config_byte_interval_micros = byte_interval_micros; }
+uint32_t PS2dev::get_clk_half_period_micros() { return _config_clk_half_period_micros; }
+uint32_t PS2dev::get_byte_interval_micros() { return _config_byte_interval_micros; }
+
 void _taskfn_process_host_request(void* arg) {
   PS2dev* ps2dev = (PS2dev*)arg;
   while (true) {
@@ -218,13 +229,13 @@ void _taskfn_send_packet(void* arg) {
       if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
         continue;
       }
-      delayMicroseconds(BYTE_INTERVAL_MICROS);
+      delayMicroseconds(ps2dev->get_byte_interval_micros());
       for (int i = 0; i < packet->len; i++) {
         if (ps2dev->get_bus_state() != PS2dev::BusState::IDLE) {
           break;
         }
         ps2dev->write(packet->data[i]);
-        delayMicroseconds(BYTE_INTERVAL_MICROS);
+        delayMicroseconds(ps2dev->get_byte_interval_micros());
       }
       xSemaphoreGive(ps2dev->get_bus_mutex_handle());
     }
