@@ -2,6 +2,7 @@
 #define E5F7EA5A_DD85_4D90_8E52_E41100031A25
 
 #include <Arduino.h>
+#include <string>
 
 #define PS2DEV_LOG_LEVEL_NONE 0
 #define PS2DEV_LOG_LEVEL_ERROR 1
